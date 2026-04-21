@@ -995,6 +995,131 @@ function renderSubmissions() {
 }
 
 // ═══════════════════════════════════════════════
+// MOBILE DRAW PANEL
+// ═══════════════════════════════════════════════
+let mobileErasing = false;
+let mobilePainting = false;
+let mobileLastX = 0;
+let mobileLastY = 0;
+
+function openMobileDrawPanel() {
+    const panel = document.getElementById('mobile-draw-panel');
+    panel.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setupMobileCanvas();
+}
+
+function closeMobileDrawPanel() {
+    const panel = document.getElementById('mobile-draw-panel');
+    panel.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function setupMobileCanvas() {
+    const canvas = document.getElementById('mobile-draw-canvas');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    updateMobileSizeDot();
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+    }
+
+    function startDraw(e) {
+        e.preventDefault();
+        mobilePainting = true;
+        const { x, y } = getPos(e);
+        mobileLastX = x; mobileLastY = y;
+    }
+
+    function draw(e) {
+        e.preventDefault();
+        if (!mobilePainting) return;
+        const ctx = canvas.getContext('2d');
+        const { x, y } = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(mobileLastX, mobileLastY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = mobileErasing ? '#fff' : getMobileColor();
+        ctx.lineWidth = getMobileBrushSize();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        mobileLastX = x; mobileLastY = y;
+    }
+
+    function stopDraw(e) { mobilePainting = false; }
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = draw;
+    canvas.onmouseup = stopDraw;
+    canvas.onmouseleave = stopDraw;
+    canvas.ontouchstart = startDraw;
+    canvas.ontouchmove = draw;
+    canvas.ontouchend = stopDraw;
+
+    document.getElementById('mdb-size').addEventListener('input', updateMobileSizeDot);
+}
+
+function getMobileColor() {
+    return document.getElementById('mdb-color').value;
+}
+
+function getMobileBrushSize() {
+    return parseInt(document.getElementById('mdb-size').value, 10);
+}
+
+function updateMobileSizeDot() {
+    const size = getMobileBrushSize();
+    const dot = document.getElementById('mdb-size-dot');
+    const px = Math.max(4, Math.min(size, 32));
+    dot.style.width = px + 'px';
+    dot.style.height = px + 'px';
+}
+
+function toggleMobileEraser(btn) {
+    mobileErasing = !mobileErasing;
+    btn.classList.toggle('active', mobileErasing);
+}
+
+function clearMobileCanvas() {
+    const canvas = document.getElementById('mobile-draw-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    mobileErasing = false;
+    const eraserBtn = document.getElementById('mdb-eraser-btn');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+}
+
+function submitMobileDrawing() {
+    const canvas = document.getElementById('mobile-draw-canvas');
+    const dataUrl = canvas.toDataURL('image/png');
+    const nameEl = document.getElementById('sender-name');
+    const name = nameEl ? nameEl.value.trim() : '';
+    const submission = {
+        id: Date.now(),
+        type: 'drawing',
+        image: dataUrl,
+        name: name || 'Anonymous',
+        message: '',
+        isPublic: false,
+        timestamp: new Date().toISOString()
+    };
+    const subs = JSON.parse(localStorage.getItem('artSubmissions') || '[]');
+    subs.push(submission);
+    localStorage.setItem('artSubmissions', JSON.stringify(subs));
+    clearMobileCanvas();
+    closeMobileDrawPanel();
+    alert('Drawing sent! ✨');
+}
+
+// ═══════════════════════════════════════════════
 // OVERLAY CLICK TO CLOSE
 // ═══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {

@@ -384,6 +384,7 @@ nav {
     display: block;
     aspect-ratio: auto;
     object-fit: cover;
+    max-height: 280px;
     background: var(--bg2);
     transition: filter 0.3s ease;
 }
@@ -2533,6 +2534,17 @@ input[type="range"] {
     max-width: 90px;
     accent-color: var(--accent);
     cursor: pointer;
+}
+
+.submissions-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 10px 4px 6px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
 }
 
 /* Brush preview dot next to size slider */

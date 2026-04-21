@@ -564,6 +564,34 @@
       </div>
     </div>
 
+    <!-- Mobile Draw FAB -->
+    <button class="mobile-draw-fab" onclick="openMobileDrawPanel()" aria-label="Draw">🖌️</button>
+
+    <!-- Mobile Draw Panel (fullscreen canvas for mobile) -->
+    <div class="mobile-draw-panel hidden" id="mobile-draw-panel">
+      <div class="mdb-header">
+        <button class="mdb-btn-close" onclick="closeMobileDrawPanel()">✕</button>
+        <div class="mdb-title">Draw ✦</div>
+        <button class="mdb-btn-save" onclick="submitMobileDrawing()">Send ✨</button>
+      </div>
+      <canvas id="mobile-draw-canvas"></canvas>
+      <div class="mdb-toolbar">
+        <div class="mdb-group mdb-color-wrap">
+          <input type="color" id="mdb-color" value="#ef745c">
+        </div>
+        <div class="mdb-sep"></div>
+        <div class="mdb-group">
+          <span class="mdb-size-dot" id="mdb-size-dot"></span>
+          <input type="range" class="mdb-size" id="mdb-size" min="1" max="40" value="6">
+        </div>
+        <div class="mdb-sep"></div>
+        <div class="mdb-group">
+          <button class="mdb-tool" id="mdb-eraser-btn" onclick="toggleMobileEraser(this)" title="Eraser">🧹</button>
+          <button class="mdb-tool" onclick="clearMobileCanvas()" title="Clear">✕</button>
+        </div>
+      </div>
+    </div>
+
     <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <!-- AOS JS -->
