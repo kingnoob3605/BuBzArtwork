@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>✦ My Gallery ✦</title>
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>"
+    />
+
+    <!-- Open Graph (social sharing previews) -->
+    <meta property="og:title" content="✦ My Gallery ✦" />
+    <meta
+      property="og:description"
+      content="An art gallery with SFW and NSFW pieces. Feel free to look around!"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#34073d" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&family=Comfortaa:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- AOS (Animate On Scroll) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css"
+    />
+
+    <!-- Site styles -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- =============================================
+     AGE GATE
+     ============================================= -->
+    <div id="age-gate">
+      <div class="age-gate-emojis" id="emoji-container"></div>
+      <div class="age-gate-box">
+        <span class="gate-emoji">🔞</span>
+        <h1>Hey there! ✦</h1>
+        <p>
+          This gallery contains <strong>adult (NSFW) content</strong>.<br />
+          You must be <strong>18 or older</strong> to enter.
+        </p>
+        <div class="age-gate-buttons">
+          <button class="btn-enter" onclick="confirmAge(false)">
+            I'm 18+ — Enter ✨
+          </button>
+          <button class="btn-leave" onclick="leaveGate()">
+            I'm under 18 — Leave
+          </button>
+        </div>
+        <button class="btn-session-only" onclick="confirmAge(true)">
+          Just this visit (don't remember me)
+        </button>
+      </div>
+    </div>
+
+    <!-- =============================================
+     HEADER
+     ============================================= -->
+    <header id="header">
+      <div class="logo" id="logo-text">✦ Gallery ✦</div>
+      <nav>
+        <button
+          class="nav-btn active"
+          data-page="gallery"
+          onclick="showPage('gallery')"
+        >
+          Gallery
+        </button>
+        <button class="nav-btn" data-page="wall" onclick="showPage('wall')">
+          Wall 📌
+        </button>
+        <button class="nav-btn" data-page="send" onclick="showPage('send')">
+          Send Me Art 🎨
+        </button>
+        <button class="nav-btn" data-page="about" onclick="showPage('about')">
+          About
+        </button>
+      </nav>
+    </header>
+
+    <!-- =============================================
+     MAIN APP
+     ============================================= -->
+    <main id="app">
+      <!-- ── GALLERY PAGE ──────────────────────── -->
+      <section class="page active" id="page-gallery">
+        <!-- SFW/NSFW filter -->
+        <div class="filter-bar">
+          <span class="filter-chip active" onclick="setFilter('all', this)"
+            >All</span
+          >
+          <span class="filter-chip" onclick="setFilter('sfw', this)"
+            >SFW Only</span
+          >
+          <span class="filter-chip" onclick="setFilter('nsfw', this)"
+            >NSFW Only</span
+          >
+        </div>
+
+        <!-- Tag chips -->
+        <div class="tag-filter-section">
+          <div class="tag-filter-label">Filter by tag</div>
+          <div class="tag-chips" id="tag-chips"></div>
+        </div>
+
+        <!-- Masonry grid -->
+        <div id="gallery-grid"></div>
+      </section>
+
+      <!-- ── SEND ME ART PAGE ──────────────────── -->
+      <section class="page" id="page-send">
+        <div class="send-page-header">
+          <div class="send-header-deco">✦ &nbsp; ✦ &nbsp; ✦</div>
+          <h2>Send Me Art</h2>
+          <p>
+            Draw something cute or leave me a message — you choose if you want
+            to sign it!
+          </p>
+        </div>
+
+        <div class="send-card">
+          <!-- Tab switcher -->
+          <div class="send-tabs">
+            <button
+              class="send-tab-btn active"
+              data-tab="draw"
+              onclick="showSendTab('draw')"
+            >
+              🖌️ Draw
+            </button>
+            <button
+              class="send-tab-btn"
+              data-tab="message"
+              onclick="showSendTab('message')"
+            >
+              💬 Message
+            </button>
+          </div>
+
+          <!-- Draw tab -->
+          <div class="send-tab-content active" id="send-tab-draw">
+            <div class="canvas-wrap">
+              <div class="canvas-controls">
+                <label class="ctrl-label">
+                  🎨
+                  <input type="color" id="color-picker" value="#ef745c" />
+                </label>
+                <label class="ctrl-label">
+                  <span class="brush-label-text">Brush</span>
+                  <input
+                    type="range"
+                    id="brush-size"
+                    min="1"
+                    max="40"
+                    value="6"
+                  />
+                </label>
+                <button
+                  class="btn-tool"
+                  id="eraser-btn"
+                  onclick="toggleEraser(this)"
+                >
+                  🧹 Eraser
+                </button>
+                <button class="btn-tool" onclick="clearCanvas()">
+                  ✕ Clear
+                </button>
+              </div>
+              <canvas id="draw-canvas" width="600" height="400"></canvas>
+            </div>
+
+            <div class="visibility-row" id="draw-visibility-row">
+              <span class="visibility-label">Post as</span>
+              <div class="visibility-toggle">
+                <button class="vis-btn" data-vis="public" onclick="setVisibility('draw','public',this)">🌐 Public</button>
+                <button class="vis-btn active" data-vis="private" onclick="setVisibility('draw','private',this)">🔒 Private</button>
+              </div>
+              <span class="vis-hint" id="draw-vis-hint">Only you (admin) can see this</span>
+            </div>
+
+            <div class="send-bottom">
+              <div class="sender-identity" id="draw-identity">
+                <span class="identity-label">Signing as</span>
+                <div class="identity-toggle">
+                  <button
+                    class="identity-btn active"
+                    data-mode="anon"
+                    onclick="setIdentityMode('draw', 'anon', this)"
+                  >
+                    🙈 Anonymous
+                  </button>
+                  <button
+                    class="identity-btn"
+                    data-mode="named"
+                    onclick="setIdentityMode('draw', 'named', this)"
+                  >
+                    ✏️ My name
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  class="identity-input"
+                  id="draw-name"
+                  placeholder="Your name or handle…"
+                  maxlength="50"
+                />
+              </div>
+              <button class="btn-send" onclick="submitDrawing()">
+                Send Drawing ✨
+              </button>
+            </div>
+          </div>
+
+          <!-- Message tab -->
+          <div class="send-tab-content" id="send-tab-message">
+            <textarea
+              id="message-textarea"
+              class="message-textarea"
+              placeholder="Write me something sweet… or spicy 🌶️&#10;&#10;You can sign it or stay anonymous!"
+            ></textarea>
+
+            <div class="visibility-row" id="message-visibility-row">
+              <span class="visibility-label">Post as</span>
+              <div class="visibility-toggle">
+                <button class="vis-btn" data-vis="public" onclick="setVisibility('message','public',this)">🌐 Public</button>
+                <button class="vis-btn active" data-vis="private" onclick="setVisibility('message','private',this)">🔒 Private</button>
+              </div>
+              <span class="vis-hint" id="message-vis-hint">Only you (admin) can see this</span>
+            </div>
+
+            <div class="send-bottom">
+              <div class="sender-identity" id="message-identity">
+                <span class="identity-label">Signing as</span>
+                <div class="identity-toggle">
+                  <button
+                    class="identity-btn active"
+                    data-mode="anon"
+                    onclick="setIdentityMode('message', 'anon', this)"
+                  >
+                    🙈 Anonymous
+                  </button>
+                  <button
+                    class="identity-btn"
+                    data-mode="named"
+                    onclick="setIdentityMode('message', 'named', this)"
+                  >
+                    ✏️ My name
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  class="identity-input"
+                  id="message-name"
+                  placeholder="Your name or handle…"
+                  maxlength="50"
+                />
+              </div>
+              <button class="btn-send" onclick="submitMessage()">
+                Send Message 💌
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── WALL PAGE ─────────────────────────── -->
+      <section class="page" id="page-wall">
+        <div class="wall-page-header">
+          <div class="send-header-deco">✦ &nbsp; ✦ &nbsp; ✦</div>
+          <h2>Community Wall</h2>
+          <p>Public posts from visitors — drawings and messages left for Bubs!</p>
+        </div>
+        <div class="wall-filter-bar">
+          <span class="wall-chip active" onclick="setWallFilter('all',this)">All</span>
+          <span class="wall-chip" onclick="setWallFilter('drawing',this)">🎨 Drawings</span>
+          <span class="wall-chip" onclick="setWallFilter('message',this)">💬 Messages</span>
+        </div>
+        <div id="wall-grid"></div>
+      </section>
+
+      <!-- ── ABOUT PAGE ────────────────────────── -->
+      <section class="page" id="page-about">
+        <div class="about-page">
+          <!-- Hero card: avatar + name -->
+          <div class="about-hero">
+            <div class="about-avatar-wrap">
+              <!-- Drop avatar.png in your WEB folder to replace the placeholder -->
+              <img
+                src="avatar.png"
+                alt="Bubs"
+                class="about-avatar"
+                onerror="
+                  this.style.display = 'none';
+                  document.getElementById(
+                    'about-avatar-fallback',
+                  ).style.display = 'flex';
+                "
+              />
+              <div class="about-avatar-fallback" id="about-avatar-fallback">
+                🎨
+              </div>
+              <div class="about-avatar-ring"></div>
+            </div>
+            <div class="about-name-card">
+              <h2 class="about-name">Bubs ✦</h2>
+              <div class="about-pills">
+                <span class="about-pill">he/him</span>
+                <span class="about-pill">adult</span>
+                <span class="about-pill">🌏 Southeast Asia</span>
+              </div>
+              <p class="about-tagline">I like men</p>
+            </div>
+          </div>
+
+          <!-- Bio sections -->
+          <div class="about-body">
+            <div class="about-section">
+              <span class="about-sec-icon">🎨</span>
+              <div>
+                <div class="about-sec-title">What I Draw</div>
+                <p>
+                  Mostly fanart and OCs, with a big soft spot for
+                  <strong>chubby characters</strong>, if a character is round
+                  and squishy I'm probably already drawing them. Main fandom is
+                  <strong>Spooky Month</strong> but honestly any chubby
+                  character is fair game.
+                </p>
+              </div>
+            </div>
+
+            <div class="about-section">
+              <span class="about-sec-icon">🛠️</span>
+              <div>
+                <div class="about-sec-title">Tools</div>
+                <p>
+                  <strong>IbisPaint</strong> for drawing ·
+                  <strong>Blender</strong> for 3D refs I trace or pose, because
+                  I am not drawing that hand freehand again.
+                </p>
+              </div>
+            </div>
+
+            <div class="about-section">
+              <span class="about-sec-icon">📋</span>
+              <div>
+                <div class="about-sec-title">Commissions &amp; Requests</div>
+                <p>
+                  Commissions
+                  <span class="about-status closed">Closed</span> &nbsp;·&nbsp;
+                  Requests <span class="about-status open">Open</span>
+                  if I'm running dry on ideas. No promises though!
+                </p>
+              </div>
+            </div>
+
+            <div class="about-section">
+              <span class="about-sec-icon">🔞</span>
+              <div>
+                <div class="about-sec-title">Content Policy</div>
+                <p>
+                  I post both SFW and NSFW here. The one thing I won't draw is
+                  vore. That's the line. 🚫
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer CTA -->
+          <div class="about-cta">
+            <p>
+              Best way to reach me →
+              <button class="about-link-btn" onclick="showPage('send')">
+                Send Me Art ✨
+              </button>
+            </p>
+            <p>Leave a message publicly or anonymously, your choice!</p>
+            <p class="about-footer-note">
+              IT guy who built this site in vanilla JS
+              <span class="about-pill small"
+                >with a little AI help, no shame 🤖</span
+              >
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- =============================================
+     LIGHTBOX MODAL
+     ============================================= -->
+    <div id="lightbox">
+      <div class="lightbox-inner">
+        <!-- Close button -->
+        <button
+          class="lightbox-close"
+          onclick="closeLightbox()"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+
+        <!-- Image -->
+        <div class="lightbox-img-wrap">
+          <img id="lb-img" src="" alt="" />
+        </div>
+
+        <!-- Info panel -->
+        <div class="lightbox-info">
+          <span id="lb-nsfw" class="nsfw-badge" style="display: none"
+            >NSFW</span
+          >
+          <div class="lightbox-title" id="lb-title"></div>
+          <div class="lightbox-date" id="lb-date"></div>
+          <div class="lightbox-desc" id="lb-desc"></div>
+          <div class="lightbox-tags" id="lb-tags"></div>
+
+          <!-- Emoji reactions -->
+          <div class="reactions-row" id="lb-reactions"></div>
+
+          <hr class="lightbox-divider" />
+
+          <!-- Comments -->
+          <div class="comments-section">
+            <div class="comments-title">💬 Comments</div>
+            <div class="comments-list" id="comments-list"></div>
+            <div id="comment-warning" class="comment-warning"></div>
+            <div class="comment-input-row">
+              <input
+                type="text"
+                id="comment-input"
+                class="comment-input"
+                placeholder="Leave a comment… (anonymous)"
+                onkeydown="onCommentKeydown(event)"
+                maxlength="500"
+              />
+              <button class="btn-post" onclick="postComment()">Post</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================
+     ADMIN PASSWORD PROMPT
+     ============================================= -->
+    <div id="admin-password-prompt" class="hidden">
+      <div class="password-box">
+        <h2>🔐 Admin</h2>
+        <p>Enter the admin password to continue.</p>
+        <div class="password-input-row">
+          <input
+            type="password"
+            id="pw-input"
+            placeholder="Password…"
+            onkeydown="onPasswordKeydown(event)"
+            autocomplete="off"
+          />
+          <button class="btn-enter" onclick="submitPassword()">Enter</button>
+        </div>
+        <div class="password-error" id="pw-error"></div>
+        <button class="btn-cancel-pw" onclick="closeAdminPrompt()">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- =============================================
+     ADMIN PANEL
+     ============================================= -->
+    <div id="admin-panel">
+      <div class="admin-inner">
+        <!-- Header -->
+        <div class="admin-header">
+          <h2>✦ Admin Panel</h2>
+          <button class="admin-close" onclick="closeAdmin()" aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="admin-tabs">
+          <button
+            class="admin-tab-btn active"
+            data-tab="add-art"
+            onclick="showAdminTab('add-art')"
+          >
+            ➕ Add Art
+          </button>
+          <button
+            class="admin-tab-btn"
+            data-tab="my-art"
+            onclick="showAdminTab('my-art')"
+          >
+            🖼️ My Art
+          </button>
+          <button
+            class="admin-tab-btn"
+            data-tab="submissions"
+            onclick="showAdminTab('submissions')"
+          >
+            📬 Submissions
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="admin-body">
+          <!-- Add Art tab -->
+          <div class="admin-tab-content active" id="admin-tab-add-art">
+            <div class="admin-form">
+              <div class="form-group">
+                <label for="new-title">Title *</label>
+                <input type="text" id="new-title" placeholder="My Artwork" />
+              </div>
+              <div class="form-group">
+                <label for="new-desc">Description</label>
+                <textarea
+                  id="new-desc"
+                  placeholder="Tell us about this piece…"
+                ></textarea>
+              </div>
+              <div class="form-group">
+                <label for="new-image">Image URL *</label>
+                <input type="url" id="new-image" placeholder="https://…" />
+              </div>
+              <div class="form-group">
+                <label for="new-tags">Tags (comma separated)</label>
+                <input
+                  type="text"
+                  id="new-tags"
+                  placeholder="digital, character, fanart"
+                />
+              </div>
+              <label class="form-checkbox-row">
+                <input type="checkbox" id="new-nsfw" />
+                Mark as NSFW
+              </label>
+              <button class="btn-submit" onclick="submitNewArt()">
+                Add to Gallery ✨
+              </button>
+            </div>
+          </div>
+
+          <!-- My Art tab -->
+          <div class="admin-tab-content" id="admin-tab-my-art">
+            <div id="admin-art-list"></div>
+          </div>
+
+          <!-- Submissions tab -->
+          <div class="admin-tab-content" id="admin-tab-submissions">
+            <div class="submissions-list" id="submissions-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- AOS JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+
+    <!-- Scripts — data before app -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Vercel Analytics -->
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
+</html>
