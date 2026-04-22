@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WigglyPaint</title>
+  <title>WigglyPaint ✦</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -47,6 +47,7 @@
       accent-color: #e88c72;
       cursor: pointer;
     }
+    .ctrl span { font-size: 0.72rem; color: #b09080; min-width: 20px; text-align: center; }
     .sep { width: 1px; height: 18px; background: #e0c8b8; flex-shrink: 0; }
 
     .wp-btn {
@@ -65,20 +66,19 @@
     .wp-btn.danger { border-color: #e07070; color: #c05050; }
     .wp-btn.danger:hover { background: #ffe0e0; }
     .wp-btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+    .wp-btn.active { background: #ffe8dd; border-color: #e88c72; font-weight: 600; }
 
     /* ---- Canvas ---- */
     #canvas-wrap {
       flex: 1;
       position: relative;
       overflow: hidden;
-      cursor: crosshair;
       min-height: 0;
     }
     #wp-canvas {
       display: block;
       touch-action: none;
-      width: 100%;
-      height: 100%;
+      cursor: crosshair;
     }
 
     /* ---- Action bar ---- */
@@ -111,151 +111,182 @@
     }
     .wp-btn.primary:hover { background: #d4785e; border-color: #d4785e; }
 
-    #gif-status {
+    #status {
       font-size: 0.72rem;
       color: #9b72cf;
       font-style: italic;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      max-width: 200px;
     }
 
-    /* ---- Progress bar ---- */
-    #gif-progress-wrap {
+    /* ---- Progress ---- */
+    #progress-wrap {
       display: none;
       position: absolute;
-      bottom: 54px;
-      left: 0; right: 0;
+      bottom: 50px; left: 0; right: 0;
       height: 4px;
       background: #e8d4f0;
       z-index: 10;
     }
-    #gif-progress-bar {
+    #progress-bar {
       height: 100%;
       width: 0%;
       background: linear-gradient(90deg, #9b72cf, #e88c72);
-      transition: width 0.1s;
+      transition: width 0.12s;
     }
   </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <label class="ctrl" title="Brush color">
-    🎨 <input type="color" id="wp-color" value="#ef745c">
+  <!-- Color -->
+  <label class="ctrl" title="Color">
+    🎨 <input type="color" id="wp-color" value="#2d2d2d">
   </label>
   <div class="sep"></div>
+  <!-- Size -->
   <label class="ctrl" title="Brush size">
-    📏 <input type="range" id="wp-size" min="2" max="30" value="8">
+    📏 <input type="range" id="wp-size" min="1" max="28" value="4">
+    <span id="size-label">4</span>
   </label>
   <div class="sep"></div>
-  <label class="ctrl" title="Wiggle intensity (0 = no wiggle)">
-    🌀 <input type="range" id="wp-wiggle" min="0" max="25" value="6">
+  <!-- Boil strength -->
+  <label class="ctrl" title="Boil intensity — how much the lines wiggle">
+    🌀 <input type="range" id="wp-boil" min="0.2" max="4" step="0.1" value="1.6">
+    <span id="boil-label">1.6</span>
   </label>
   <div class="sep"></div>
-  <label class="ctrl" title="Canvas background color">
+  <!-- BG -->
+  <label class="ctrl" title="Canvas background">
     🖼 <input type="color" id="wp-bg" value="#fdf6f0">
   </label>
   <div class="sep"></div>
+  <button class="wp-btn" id="eraser-btn" onclick="toggleEraser(this)">🧹 Eraser</button>
   <button class="wp-btn" onclick="wpUndo()">↩ Undo</button>
   <button class="wp-btn danger" onclick="wpClear()">✕ Clear</button>
 </div>
 
 <div id="canvas-wrap">
   <canvas id="wp-canvas"></canvas>
-  <div id="gif-progress-wrap">
-    <div id="gif-progress-bar"></div>
-  </div>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
 </div>
 
 <div id="actions">
   <div class="action-left">
-    <button class="wp-btn gif-btn" id="btn-record" onclick="recordGif()">🎬 Record GIF (3s)</button>
-    <span id="gif-status"></span>
+    <button class="wp-btn gif-btn" id="btn-gif" onclick="recordGif()">🎬 Save GIF</button>
+    <span id="status"></span>
   </div>
   <div class="action-right">
-    <button class="wp-btn primary" id="btn-submit" onclick="submitToGallery()">📤 Submit</button>
+    <button class="wp-btn primary" onclick="submitToGallery()">📤 Submit</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script>
 // =============================================
-// WIGGLYPAINT
+// WIGGLYPAINT — Line Boil implementation
+// Each stroke bakes Frame A (clean) + Frame B (tiny random offsets)
+// setInterval at 110ms alternates between them → Ed Edd n Eddy boil
 // =============================================
 
-const canvas  = document.getElementById('wp-canvas');
-const ctx     = canvas.getContext('2d');
-const wrap    = document.getElementById('canvas-wrap');
+const canvas = document.getElementById('wp-canvas');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvas-wrap');
 
-let strokes        = [];
-let curStroke      = null;
-let isDrawing      = false;
-let animTime       = 0;
-let rafId          = null;
-let lastGifDataUrl = null;
-let isRecording    = false;
+// ---- State ----
+let strokes     = []; // [{pointsA, pointsB, color, size, eraser}]
+let curStroke   = null;
+let isDrawing   = false;
+let showB       = false;
+let eraserOn    = false;
+let boilTimer   = null;
+let lastGifUrl  = null;
+let isRecording = false;
 
-const colorPicker  = document.getElementById('wp-color');
-const sizePicker   = document.getElementById('wp-size');
-const wigglePicker = document.getElementById('wp-wiggle');
-const bgPicker     = document.getElementById('wp-bg');
+// ---- Controls ----
+const colorEl = document.getElementById('wp-color');
+const sizeEl  = document.getElementById('wp-size');
+const boilEl  = document.getElementById('wp-boil');
+const bgEl    = document.getElementById('wp-bg');
 
-function getColor()  { return colorPicker.value; }
-function getSize()   { return parseInt(sizePicker.value, 10) || 8; }
-function getWiggle() { return parseInt(wigglePicker.value, 10); }
-function getBg()     { return bgPicker.value; }
+sizeEl.addEventListener('input', () => document.getElementById('size-label').textContent = sizeEl.value);
+boilEl.addEventListener('input', () => document.getElementById('boil-label').textContent = boilEl.value);
 
-// ---- Resize canvas ----
-function resizeCanvas() {
-  const rect = wrap.getBoundingClientRect();
-  canvas.width  = Math.max(1, Math.floor(rect.width));
-  canvas.height = Math.max(1, Math.floor(rect.height));
+function getColor()  { return eraserOn ? getBg() : colorEl.value; }
+function getSize()   { return parseInt(sizeEl.value, 10) || 4; }
+function getBoil()   { return parseFloat(boilEl.value) || 1.6; }
+function getBg()     { return bgEl.value; }
+
+function toggleEraser(btn) {
+    eraserOn = !eraserOn;
+    btn.classList.toggle('active', eraserOn);
+    canvas.style.cursor = eraserOn ? 'cell' : 'crosshair';
 }
 
-// ---- Pointer helpers ----
+// ---- Resize ----
+function resizeCanvas() {
+    const rect = wrap.getBoundingClientRect();
+    canvas.width  = Math.max(1, Math.floor(rect.width));
+    canvas.height = Math.max(1, Math.floor(rect.height));
+    redraw();
+}
+
+// ---- Pointer ----
 function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width  / rect.width;
-  const scaleY = canvas.height / rect.height;
-  if (e.touches && e.touches[0]) {
-    return {
-      x: (e.touches[0].clientX - rect.left) * scaleX,
-      y: (e.touches[0].clientY - rect.top)  * scaleY
-    };
-  }
-  return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top)  * scaleY
-  };
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
 }
 
 // ---- Draw events ----
 function startDraw(e) {
-  if (isRecording) return;
-  e.preventDefault();
-  isDrawing = true;
-  const pos = getPos(e);
-  curStroke = { points: [pos], color: getColor(), size: getSize() };
+    if (isRecording) return;
+    e.preventDefault();
+    isDrawing = true;
+    const pos = getPos(e);
+    curStroke = {
+        points: [pos],
+        color: getColor(),
+        size: getSize(),
+        eraser: eraserOn
+    };
 }
 
 function moveDraw(e) {
-  if (!isDrawing || isRecording) return;
-  e.preventDefault();
-  const pos  = getPos(e);
-  const last = curStroke.points[curStroke.points.length - 1];
-  const dx   = pos.x - last.x;
-  const dy   = pos.y - last.y;
-  if (dx * dx + dy * dy > 3) curStroke.points.push(pos);
+    if (!isDrawing || isRecording) return;
+    e.preventDefault();
+    const pos  = getPos(e);
+    const last = curStroke.points[curStroke.points.length - 1];
+    // Only add if moved enough (keeps point count sane)
+    if ((pos.x - last.x) ** 2 + (pos.y - last.y) ** 2 > 2) {
+        curStroke.points.push(pos);
+    }
 }
 
 function stopDraw() {
-  if (!isDrawing) return;
-  isDrawing = false;
-  if (curStroke && curStroke.points.length >= 1) {
-    strokes.push(curStroke);
-  }
-  curStroke = null;
+    if (!isDrawing) return;
+    isDrawing = false;
+    if (!curStroke || curStroke.points.length === 0) { curStroke = null; return; }
+
+    const boil = getBoil();
+    // Bake Frame B: each point gets a tiny fixed random offset
+    const pointsB = curStroke.points.map(p => ({
+        x: p.x + (Math.random() - 0.5) * boil * 2,
+        y: p.y + (Math.random() - 0.5) * boil * 2
+    }));
+
+    strokes.push({
+        pointsA: curStroke.points,
+        pointsB,
+        color: curStroke.color,
+        size: curStroke.size,
+        eraser: curStroke.eraser
+    });
+    curStroke = null;
+    lastGifUrl = null; // invalidate cached GIF
+    setStatus('');
 }
 
 canvas.addEventListener('mousedown',  startDraw);
@@ -268,164 +299,166 @@ canvas.addEventListener('touchend',   stopDraw);
 
 // ---- Clear / Undo ----
 function wpClear() {
-  strokes = [];
-  curStroke = null;
-  lastGifDataUrl = null;
-  setStatus('');
+    strokes = [];
+    curStroke = null;
+    lastGifUrl = null;
+    setStatus('');
+    redraw();
 }
 
 function wpUndo() {
-  if (strokes.length > 0) {
-    strokes.pop();
-    lastGifDataUrl = null;
-    setStatus('');
-  }
+    if (strokes.length > 0) { strokes.pop(); lastGifUrl = null; setStatus(''); redraw(); }
 }
 
-// ---- Render a stroke with wiggle offset ----
-function drawStroke(stroke, t, wiggleAmt) {
-  const pts = stroke.points;
-  if (pts.length === 0) return;
-
-  ctx.beginPath();
-  ctx.strokeStyle = stroke.color;
-  ctx.lineWidth   = stroke.size;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
-
-  for (let i = 0; i < pts.length; i++) {
-    const wx = Math.sin(t * 2.2 + i * 0.45) * wiggleAmt;
-    const wy = Math.cos(t * 2.2 + i * 0.38 + 1.1) * wiggleAmt;
-    if (i === 0) ctx.moveTo(pts[i].x + wx, pts[i].y + wy);
-    else          ctx.lineTo(pts[i].x + wx, pts[i].y + wy);
-  }
-  ctx.stroke();
-
-  if (pts.length === 1) {
-    const wx = Math.sin(t * 2.2) * wiggleAmt;
-    const wy = Math.cos(t * 2.2 + 1.1) * wiggleAmt;
+// ---- Render ----
+function drawStroke(pts, color, size) {
+    if (!pts || pts.length === 0) return;
     ctx.beginPath();
-    ctx.arc(pts[0].x + wx, pts[0].y + wy, stroke.size / 2, 0, Math.PI * 2);
-    ctx.fillStyle = stroke.color;
-    ctx.fill();
-  }
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = size;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    if (pts.length === 1) {
+        ctx.arc(pts[0].x, pts[0].y, size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        return;
+    }
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
 }
 
-function renderFrame(t, wiggleAmt) {
-  ctx.fillStyle = getBg();
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (const stroke of strokes) drawStroke(stroke, t, wiggleAmt);
-  if (curStroke && curStroke.points.length > 0) drawStroke(curStroke, 0, 0);
+function redraw(useB) {
+    ctx.fillStyle = getBg();
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const s of strokes) {
+        drawStroke(useB ? s.pointsB : s.pointsA, s.color, s.size);
+    }
+    // Live stroke — always draw clean while user is drawing
+    if (curStroke && curStroke.points.length > 0) {
+        drawStroke(curStroke.points, curStroke.color, curStroke.size);
+    }
 }
 
-// ---- Animation loop ----
-function animate() {
-  rafId = requestAnimationFrame(animate);
-  animTime += 0.04;
-  renderFrame(animTime, getWiggle());
+// ---- Line boil timer: 110ms alternates A/B ----
+function startBoilTimer() {
+    boilTimer = setInterval(() => {
+        if (isRecording) return;
+        showB = !showB;
+        redraw(showB);
+    }, 110);
+}
+
+// ---- GIF worker URL (blob trick — avoids CORS on file://) ----
+let _gifWorkerUrl = null;
+async function getWorkerUrl() {
+    if (_gifWorkerUrl) return _gifWorkerUrl;
+    try {
+        const code = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js').then(r => r.text());
+        _gifWorkerUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+    } catch {
+        _gifWorkerUrl = 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js';
+    }
+    return _gifWorkerUrl;
 }
 
 // ---- GIF recording ----
 async function recordGif() {
-  if (strokes.length === 0) { setStatus('Draw something first!'); return; }
-  if (isRecording) return;
+    if (strokes.length === 0) { setStatus('Draw something first!'); return; }
+    if (isRecording) return;
 
-  isRecording = true;
-  lastGifDataUrl = null;
-  cancelAnimationFrame(rafId);
+    isRecording = true;
+    lastGifUrl  = null;
+    clearInterval(boilTimer);
 
-  const btn    = document.getElementById('btn-record');
-  btn.disabled = true;
+    const btn = document.getElementById('btn-gif');
+    btn.disabled = true;
+    setStatus('Loading encoder...');
 
-  const FRAMES   = 36;
-  const FPS      = 12;
-  const DELAY_MS = Math.round(1000 / FPS);
-  const wiggle   = getWiggle();
+    const workerUrl = await getWorkerUrl();
+    const DELAY = 110;
+    const gif = new GIF({
+        workers: 2,
+        quality: 6,
+        width:   canvas.width,
+        height:  canvas.height,
+        workerScript: workerUrl
+    });
 
-  const gif = new GIF({
-    workers: 2,
-    quality: 8,
-    width:   canvas.width,
-    height:  canvas.height,
-    workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
-  });
+    const pw = document.getElementById('progress-wrap');
+    const pb = document.getElementById('progress-bar');
+    pw.style.display = 'block';
 
-  const progressWrap = document.getElementById('gif-progress-wrap');
-  const progressBar  = document.getElementById('gif-progress-bar');
-  progressWrap.style.display = 'block';
+    // Add alternating A/B frames — 8 pairs = 16 frames total, clean loop
+    const PAIRS = 8;
+    for (let i = 0; i < PAIRS; i++) {
+        redraw(false); gif.addFrame(canvas, { copy: true, delay: DELAY });
+        redraw(true);  gif.addFrame(canvas, { copy: true, delay: DELAY });
+        pb.style.width = Math.round((i / PAIRS) * 60) + '%';
+        await new Promise(r => setTimeout(r, 4));
+    }
 
-  for (let i = 0; i < FRAMES; i++) {
-    const t = (i / FRAMES) * Math.PI * 2 * 3;
-    renderFrame(t, wiggle);
-    gif.addFrame(canvas, { copy: true, delay: DELAY_MS });
-    const pct = Math.round((i / FRAMES) * 70);
-    progressBar.style.width = pct + '%';
-    setStatus(`Recording... ${pct}%`);
-    await new Promise(r => setTimeout(r, 8));
-  }
+    setStatus('Encoding...');
+    pb.style.width = '70%';
 
-  setStatus('Encoding...');
-  progressBar.style.width = '80%';
+    gif.on('progress', p => { pb.style.width = (70 + Math.round(p * 28)) + '%'; });
 
-  gif.on('progress', p => {
-    progressBar.style.width = (80 + Math.round(p * 20)) + '%';
-  });
+    gif.on('finished', blob => {
+        pb.style.width = '100%';
+        setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 500);
 
-  gif.on('finished', blob => {
-    progressBar.style.width = '100%';
-    setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+        // Auto-download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'wigglypaint.gif'; a.click();
 
-    // Download automatically
-    const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href    = url;
-    a.download = 'wigglypaint.gif';
-    a.click();
+        // Store data URL so Submit can send it
+        const reader = new FileReader();
+        reader.onload = ev => {
+            lastGifUrl = ev.target.result;
+            setStatus('GIF saved! Hit Submit to send ✨');
+        };
+        reader.readAsDataURL(blob);
 
-    // Also store as data URL so Submit can use it
-    const reader = new FileReader();
-    reader.onload = ev => {
-      lastGifDataUrl = ev.target.result;
-      setStatus('GIF saved! Hit Submit to send to gallery ✨');
-    };
-    reader.readAsDataURL(blob);
+        btn.disabled = false;
+        isRecording  = false;
+        startBoilTimer();
+    });
 
-    btn.disabled = false;
-    isRecording  = false;
-    animate();
-  });
+    gif.on('error', () => {
+        setStatus('GIF failed, try again.');
+        pw.style.display = 'none';
+        btn.disabled = false;
+        isRecording  = false;
+        startBoilTimer();
+    });
 
-  gif.on('error', err => {
-    console.error('gif.js error:', err);
-    setStatus('GIF encoding failed. Try again.');
-    progressWrap.style.display = 'none';
-    btn.disabled = false;
-    isRecording  = false;
-    animate();
-  });
-
-  gif.render();
+    gif.render();
 }
 
 // ---- Submit to parent gallery ----
 function submitToGallery() {
-  if (strokes.length === 0) { setStatus('Draw something first!'); return; }
-
-  const dataUrl    = lastGifDataUrl || canvas.toDataURL('image/jpeg', 0.85);
-  const isAnimated = !!lastGifDataUrl;
-
-  window.parent.postMessage({ type: 'wiggly-submit', dataUrl, isAnimated }, '*');
-  setStatus(isAnimated ? 'Animated GIF submitted! ✨' : 'Snapshot submitted! (record a GIF first for animation) ✨');
+    if (strokes.length === 0) { setStatus('Draw something first!'); return; }
+    // Use GIF if recorded, else static JPEG snapshot
+    redraw(false); // draw clean frame for snapshot
+    const dataUrl = lastGifUrl || canvas.toDataURL('image/jpeg', 0.88);
+    window.parent.postMessage({ type: 'wiggly-submit', dataUrl }, '*');
+    setStatus(lastGifUrl ? 'Animated GIF submitted! ✨' : 'Snapshot submitted! (save a GIF first for animation) ✨');
 }
 
-function setStatus(msg) {
-  document.getElementById('gif-status').textContent = msg;
-}
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+// ---- Listen for parent trigger ----
+window.addEventListener('message', e => {
+    if (e.data && e.data.type === 'trigger-submit') submitToGallery();
+});
 
 // ---- Init ----
 resizeCanvas();
-animate();
+startBoilTimer();
 window.addEventListener('resize', resizeCanvas);
+bgEl.addEventListener('input', () => redraw(showB));
 </script>
 </body>
 </html>

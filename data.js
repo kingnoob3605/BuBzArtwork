@@ -11,22 +11,40 @@ const SITE_CONFIG = {
 
 // =============================================
 // BANNED WORDS — add words you want to block in comments
-// All checks are case-insensitive
+// Philosophy: block harassment & hate, NOT lewd enthusiasm.
+// "omg this is so hot/nasty/filthy" = fine. Slurs & threats = blocked.
+// The purgomalum API adds a second layer on top of this local list.
 // =============================================
 const BANNED_WORDS = [
-  // — Spam / self-promo
-  "spam", "follow me", "check out my", "click here", "subscribe", "onlyfans.com", "discord.gg",
 
-  // — General insults / hate
-  "trash", "garbage", "terrible", "disgusting", "horrible", "worthless", "ugly", "kill yourself", "kys",
+  // ── Threats / self-harm encouragement ─────────────────
+  "kill yourself", "kys", "go die", "end yourself", "rope yourself",
+  "i will find you", "i know where you live",
 
-  // — Slurs (abbreviated placeholders — add full words as needed)
-  "slur",
+  // ── Direct art/artist attacks ──────────────────────────
+  // NOTE: "disgusting/horrible/ugly" intentionally excluded —
+  // lewd users use them as compliments. Purgomalum handles context.
+  "your art is trash", "you can't draw", "quit drawing",
+  "delete this", "this is garbage", "garbage art", "worthless art",
 
-  // — NSFW / harassment
-  "shut up", "idiot", "moron", "stupid", "dumb",
+  // ── Spam / self-promo ──────────────────────────────────
+  "follow me", "follow my", "check out my", "visit my",
+  "click here", "click the link", "link in bio",
+  "subscribe to", "onlyfans.com", "discord.gg", "t.me/",
+  "free robux", "free vbucks", "bit.ly", "tinyurl.com",
 
-  // Add your own: "word1", "word2", ...
+  // ── Slurs (racial / sexuality / gender) ───────────────
+  // Listed for moderation purposes — these are never acceptable
+  "nigger", "nigga", "faggot", "fag", "tranny", "retard",
+  "spic", "chink", "gook", "kike",
+  // Note: "dyke" and "cunt" removed — lewd/LGBTQ+ audiences use these
+  // non-maliciously. Re-add if you see them used as targeted attacks.
+
+  // ── Targeted harassment ────────────────────────────────
+  "nobody likes you", "everyone hates you", "you should stop",
+  "you're pathetic", "youre pathetic", "get off the internet",
+
+  // Add your own below:
 ];
 
 // =============================================

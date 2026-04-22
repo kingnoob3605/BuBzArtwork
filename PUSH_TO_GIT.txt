@@ -1,0 +1,63 @@
+=============================================
+  HOW TO PUSH YOUR GALLERY TO VERCEL
+=============================================
+
+1. OPEN TERMINAL (Git Bash or Command Prompt)
+   - Right-click inside the WEB folder → "Open in Terminal"
+   - OR open VS Code → drag the WEB folder in → open Terminal
+
+2. FIRST TIME SETUP (only if not done yet)
+   git init
+   git remote add origin YOUR_GITHUB_REPO_URL
+
+   Skip this if the repo already exists.
+
+3. STAGE ALL CHANGES
+   git add .
+
+4. COMMIT WITH A MESSAGE
+   git commit -m "gallery update - wiggly paint, pending queue, reactions, socials"
+
+5. PUSH TO GITHUB
+   git push origin main
+
+   (If your branch is called "master" use that instead of "main")
+
+6. VERCEL DEPLOYS AUTOMATICALLY
+   - Go to https://vercel.com/dashboard
+   - You should see a new deployment triggered
+   - Wait ~30 seconds and visit https://bubz-artwork.vercel.app/
+
+=============================================
+  BEFORE YOU PUSH — CHECKLIST
+=============================================
+
+[ ] Change admin password in data.js (currently "123"!)
+[ ] Add a preview.jpg image (1200x630px) to the WEB folder
+    → This shows as the thumbnail when you share your link
+[ ] Double-check your artworks in data.js are correct
+
+=============================================
+  FILES CHANGED IN THIS SESSION
+=============================================
+
+  index.html   - full restructure, all new features
+  app.js       - all JS logic (reactions, pending, wiggly, etc.)
+  style.css    - all new styles
+  data.js      - banned words, banned emojis, site config
+  Wigglypaint.html - line boil drawing tool
+  manifest.json    - PWA install support (NEW)
+  PUSH_TO_GIT.txt  - this file (you can delete it after)
+
+=============================================
+  NOTES
+=============================================
+
+- All data (comments, wall posts, reactions) is stored in
+  localStorage — it only lives in the browser it was created on.
+  Use the Admin > Export button to back it up.
+
+- When you're ready, migrate to Supabase to make data
+  persistent across devices. That's the next big upgrade.
+
+=============================================
