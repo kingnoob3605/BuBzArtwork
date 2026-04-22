@@ -24,7 +24,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Pacifico&family=Comfortaa:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Pacifico&family=Comfortaa:wght@400;600;700&family=Caveat:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
 
@@ -35,7 +35,7 @@
     />
 
     <!-- Site styles -->
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=5" />
   </head>
   <body>
     <!-- =============================================
@@ -52,10 +52,10 @@
         </p>
         <div class="age-gate-buttons">
           <button class="btn-enter" onclick="confirmAge(false)">
-            I'm 18+ — Enter ✨
+            I'm 18+, Enter ✨
           </button>
           <button class="btn-leave" onclick="leaveGate()">
-            I'm under 18 — Leave
+            I'm under 18, Leave
           </button>
         </div>
         <button class="btn-session-only" onclick="confirmAge(true)">
@@ -124,7 +124,7 @@
           <div class="send-header-deco">✦ &nbsp; ✦ &nbsp; ✦</div>
           <h2>Send Me Art</h2>
           <p>
-            Draw something cute or leave me a message — you choose if you want
+            Draw something cute or leave me a message, you choose if you want
             to sign it!
           </p>
         </div>
@@ -150,34 +150,41 @@
 
           <!-- Draw tab -->
           <div class="send-tab-content active" id="send-tab-draw">
+
+            <!-- Draw mode switcher -->
+            <div class="draw-mode-tabs">
+              <button class="draw-mode-btn active" id="dmt-simple" onclick="setDrawMode('simple')">🖌️ Simple Draw</button>
+              <button class="draw-mode-btn" id="dmt-wiggly" onclick="setDrawMode('wiggly')">🌀 WigglyPaint</button>
+            </div>
+
+            <!-- Simple Draw panel -->
+            <div id="draw-mode-simple">
             <div class="canvas-wrap">
               <div class="canvas-controls">
-                <label class="ctrl-label">
-                  🎨
-                  <input type="color" id="color-picker" value="#ef745c" />
+                <!-- Color picker -->
+                <label class="ctrl-label" title="Brush color">
+                  🎨 <input type="color" id="color-picker" value="#ef745c" />
                 </label>
-                <label class="ctrl-label">
-                  <span class="brush-label-text">Brush</span>
-                  <input
-                    type="range"
-                    id="brush-size"
-                    min="1"
-                    max="40"
-                    value="6"
-                  />
+                <div class="ctrl-sep"></div>
+                <!-- Brush size -->
+                <label class="ctrl-label" title="Brush size">
+                  <span class="brush-label-text">Size</span>
+                  <input type="range" id="brush-size" min="1" max="40" value="6" />
                 </label>
-                <button
-                  class="btn-tool"
-                  id="eraser-btn"
-                  onclick="toggleEraser(this)"
-                >
-                  🧹 Eraser
+                <div class="ctrl-sep"></div>
+                <!-- Tools -->
+                <button class="btn-tool" id="eraser-btn" onclick="toggleEraser(this)" title="Eraser">
+                  🧹 <span class="ctrl-text">Eraser</span>
                 </button>
-                <button class="btn-tool" onclick="clearCanvas()">
-                  ✕ Clear
+                <button class="btn-tool" onclick="clearCanvas()" title="Clear canvas">
+                  ✕ <span class="ctrl-text">Clear</span>
                 </button>
               </div>
               <canvas id="draw-canvas" width="600" height="400"></canvas>
+              <!-- Mobile fullscreen button — full width, below canvas, mobile only -->
+              <button class="btn-draw-fullscreen-mobile" onclick="openMobileDrawPanel()">
+                🖌️ Open Fullscreen Canvas
+              </button>
             </div>
 
             <div class="visibility-row" id="draw-visibility-row">
@@ -220,6 +227,24 @@
                 Send Drawing ✨
               </button>
             </div>
+            </div> <!-- /#draw-mode-simple -->
+
+            <!-- WigglyPaint panel -->
+            <div id="draw-mode-wiggly" class="hidden">
+              <div class="wiggly-wrap">
+                <iframe
+                  id="wiggly-iframe"
+                  src="Wigglypaint.html"
+                  class="wiggly-iframe"
+                  title="WigglyPaint"
+                  allowfullscreen
+                ></iframe>
+              </div>
+              <div class="wiggly-hint">
+                <span>🌀 Draw in WigglyPaint, then use its built-in <strong>Save</strong> button to download your art.</span>
+              </div>
+            </div>
+
           </div>
 
           <!-- Message tab -->
@@ -279,7 +304,7 @@
         <div class="wall-page-header">
           <div class="send-header-deco">✦ &nbsp; ✦ &nbsp; ✦</div>
           <h2>Community Wall</h2>
-          <p>Public posts from visitors — drawings and messages left for Bubs!</p>
+          <p>Public posts from visitors, drawings and messages left for Bubs!</p>
         </div>
         <div class="wall-filter-bar">
           <span class="wall-chip active" onclick="setWallFilter('all',this)">All</span>
@@ -297,7 +322,7 @@
             <div class="about-avatar-wrap">
               <!-- Drop avatar.png in your WEB folder to replace the placeholder -->
               <img
-                src="avatar.png"
+                src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f5b7ff'/><stop offset='1' stop-color='%238e2de2'/></linearGradient></defs><rect width='256' height='256' fill='url(%23g)'/><text x='128' y='168' font-size='140' text-anchor='middle' font-family='serif'>🎨</text></svg>"
                 alt="Bubs"
                 class="about-avatar"
                 onerror="
@@ -412,7 +437,7 @@
 
         <!-- Image -->
         <div class="lightbox-img-wrap">
-          <img id="lb-img" src="" alt="" />
+          <img id="lb-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
         </div>
 
         <!-- Info panel -->
@@ -490,26 +515,17 @@
 
         <!-- Tabs -->
         <div class="admin-tabs">
-          <button
-            class="admin-tab-btn active"
-            data-tab="add-art"
-            onclick="showAdminTab('add-art')"
-          >
+          <button class="admin-tab-btn active" data-tab="add-art" onclick="showAdminTab('add-art')">
             ➕ Add Art
           </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="my-art"
-            onclick="showAdminTab('my-art')"
-          >
+          <button class="admin-tab-btn" data-tab="my-art" onclick="showAdminTab('my-art')">
             🖼️ My Art
           </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="submissions"
-            onclick="showAdminTab('submissions')"
-          >
-            📬 Submissions
+          <button class="admin-tab-btn" data-tab="pending" onclick="showAdminTab('pending')">
+            ⏳ Pending<span class="admin-tab-badge" id="pending-badge"></span>
+          </button>
+          <button class="admin-tab-btn" data-tab="submissions" onclick="showAdminTab('submissions')">
+            📬 Inbox
           </button>
         </div>
 
@@ -524,10 +540,7 @@
               </div>
               <div class="form-group">
                 <label for="new-desc">Description</label>
-                <textarea
-                  id="new-desc"
-                  placeholder="Tell us about this piece…"
-                ></textarea>
+                <textarea id="new-desc" placeholder="Tell us about this piece…"></textarea>
               </div>
               <div class="form-group">
                 <label for="new-image">Image URL *</label>
@@ -535,19 +548,12 @@
               </div>
               <div class="form-group">
                 <label for="new-tags">Tags (comma separated)</label>
-                <input
-                  type="text"
-                  id="new-tags"
-                  placeholder="digital, character, fanart"
-                />
+                <input type="text" id="new-tags" placeholder="digital, character, fanart" />
               </div>
               <label class="form-checkbox-row">
-                <input type="checkbox" id="new-nsfw" />
-                Mark as NSFW
+                <input type="checkbox" id="new-nsfw" /> Mark as NSFW
               </label>
-              <button class="btn-submit" onclick="submitNewArt()">
-                Add to Gallery ✨
-              </button>
+              <button class="btn-submit" onclick="submitNewArt()">Add to Gallery ✨</button>
             </div>
           </div>
 
@@ -556,10 +562,40 @@
             <div id="admin-art-list"></div>
           </div>
 
-          <!-- Submissions tab -->
+          <!-- Pending tab -->
+          <div class="admin-tab-content" id="admin-tab-pending">
+            <div class="submissions-list" id="pending-list"></div>
+          </div>
+
+          <!-- Inbox tab (public wall + private approved) -->
           <div class="admin-tab-content" id="admin-tab-submissions">
             <div class="submissions-list" id="submissions-list"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Draw Panel (fullscreen canvas for mobile) -->
+    <div class="mobile-draw-panel hidden" id="mobile-draw-panel">
+      <div class="mdb-header">
+        <button class="mdb-btn-close" onclick="closeMobileDrawPanel()">✕</button>
+        <div class="mdb-title">Draw ✦</div>
+        <button class="mdb-btn-save" onclick="submitMobileDrawing()">Send ✨</button>
+      </div>
+      <canvas id="mobile-draw-canvas"></canvas>
+      <div class="mdb-toolbar">
+        <div class="mdb-group mdb-color-wrap">
+          <input type="color" id="mdb-color" value="#ef745c">
+        </div>
+        <div class="mdb-sep"></div>
+        <div class="mdb-group">
+          <span class="mdb-size-dot" id="mdb-size-dot"></span>
+          <input type="range" class="mdb-size" id="mdb-size" min="1" max="40" value="6">
+        </div>
+        <div class="mdb-sep"></div>
+        <div class="mdb-group">
+          <button class="mdb-tool" id="mdb-eraser-btn" onclick="toggleMobileEraser(this)" title="Eraser">🧹</button>
+          <button class="mdb-tool" onclick="clearMobileCanvas()" title="Clear">✕</button>
         </div>
       </div>
     </div>
@@ -572,8 +608,16 @@
     <!-- Scripts — data before app -->
     <script src="data.js"></script>
     <script src="app.js"></script>
+    <script src="mobile-enhance.js"></script>
 
-    <!-- Vercel Analytics -->
-    <script defer src="/_vercel/insights/script.js"></script>
+    <!-- Vercel Analytics (gated to deployed host; avoids 404 in preview) -->
+    <script>
+      if (location.hostname.endsWith('vercel.app')) {
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = '/_vercel/insights/script.js';
+        document.body.appendChild(s);
+      }
+    </script>
   </body>
 </html>

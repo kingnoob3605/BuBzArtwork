@@ -181,7 +181,8 @@ function setTagFilter(tag, el) {
 }
 
 function getFilteredArtworks() {
-    return allArtworks.filter(art => {
+    const hidden = getHiddenArtIds();
+    return allArtworks.filter(art => !hidden.includes(art.id)).filter(art => {
         const passFilter =
             currentFilter === 'all' ||
             (currentFilter === 'sfw'  && !art.nsfw) ||
@@ -319,7 +320,15 @@ function saveReactions(artId, data) {
     localStorage.setItem('reactions-' + artId, JSON.stringify(data));
 }
 
+function isEmojiAllowed(emoji) {
+    return !BANNED_REACTION_EMOJIS.includes(emoji);
+}
+
 function addReaction(artId, emoji) {
+    if (!isEmojiAllowed(emoji)) {
+        showToast('That reaction isn\'t allowed here 🚫');
+        return;
+    }
     const data = getReactions(artId);
     data[emoji] = (data[emoji] || 0) + 1;
     saveReactions(artId, data);
@@ -334,22 +343,126 @@ function addReaction(artId, emoji) {
 
 function buildCardReactionsHtml(artId) {
     const data = getReactions(artId);
-    return REACTION_EMOJIS
-        .filter(e => data[e] > 0)
-        .map(e => `<span class="card-reaction">${e} <span class="reaction-count">${data[e]}</span></span>`)
+    return Object.entries(data)
+        .filter(([, count]) => count > 0)
+        .map(([e, count]) => `<span class="card-reaction">${e} <span class="reaction-count">${count}</span></span>`)
         .join('');
 }
+
+// Emoji picker data — browseable categories + search
+const EMOJI_PICKER_DATA = {
+    '😊 Faces':      ['😀','😂','🥰','😍','🤩','😎','🥺','😭','😤','🥹','😇','🤭','🫶','🤔','😏','🙈','🫠','😵','🥴','😈'],
+    '❤️ Hearts':     ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💗','💓','💞','💕','💟','❣️','💔','🫀','💘','💝'],
+    '🔥 Hype':       ['🔥','✨','💥','⚡','🌟','🎉','🎊','🏆','👑','💯','🙌','👏','💪','🫡','🤌','🗣️','📣','💫'],
+    '🌸 Cute':       ['🌸','🌺','🌼','🌻','🍓','🍒','🧁','🍰','🎀','🦋','🐱','🐰','🐻','🦊','🐼','🌈','🫧','🍭','🩷'],
+    '🎨 Art':        ['🎨','🖌️','✏️','🖊️','📝','🖼️','🎭','🎬','📸','🎵','🎶','🪄','🔮','🧿','🌀','🪩','🎠'],
+    '💬 Feels':      ['👍','❓','‼️','💢','💬','🗯️','💤','👀','🫣','🤯','😱','🫨','🙏','🤝','🫂','💅','🫙','🧠'],
+    '💦 Lewd':       ['🍆','🍑','🍌','💦','🌮','👅','🫦','🍒','🔞','😏','🥵','💋','🩲','🛏️','😈','🌽','🐓','🔥','🫀','🫣','🙈','🌶️','🎯','🍭','🩸'],
+    '🎃 Spooky Month':['🎃','🌙','🔪','🩸','💀','☠️','👁️','🦷','🪓','🗡️','🧟','👹','😱','🕷️','🦇','🌑','🩻','🫀','🧛','👻','⛓️','🔗','🪦','🩹','🌚','🥩','🍖','🦴','🍗','🥓'],
+};
+
+const EMOJI_FLAT = Object.values(EMOJI_PICKER_DATA).flat().filter(isEmojiSafe);
+
+function isEmojiSafe(e) {
+    return !BANNED_REACTION_EMOJIS.includes(e);
+}
+
+let _pickerArtId   = null;
+let _pickerContext = 'art'; // 'art' | 'wall'
 
 function renderReactions(artId) {
     const container = document.getElementById('lb-reactions');
     if (!container) return;
     const data = getReactions(artId);
-    container.innerHTML = REACTION_EMOJIS.map(e => {
+
+    // Only show emojis that have actually been reacted with
+    const usedEmojis = Object.keys(data).filter(e => data[e] > 0);
+
+    container.innerHTML = usedEmojis.map(e => {
         const count = data[e] || 0;
-        return `<button class="reaction-btn ${count > 0 ? 'has-count' : ''}" onclick="addReaction(${artId}, '${e}')" title="React with ${e}">
-            ${e}<span class="reaction-count">${count > 0 ? count : ''}</span>
+        return `<button class="reaction-btn has-count" onclick="addReaction(${artId}, '${e}')" title="React with ${e}">
+            ${e}<span class="reaction-count">${count}</span>
         </button>`;
+    }).join('') + `<button class="reaction-btn reaction-add-btn" onclick="openEmojiPicker(${artId}, this)" title="Add reaction">＋</button>`;
+}
+
+function openEmojiPicker(artId, btn, context = 'art') {
+    closeEmojiPicker();
+    _pickerArtId   = artId;
+    _pickerContext = context;
+
+    const picker = document.createElement('div');
+    picker.id = 'emoji-picker';
+    picker.className = 'emoji-picker';
+    picker.innerHTML = `
+        <div class="ep-search-wrap">
+            <input class="ep-search" placeholder="Search emoji…" oninput="filterEmojiPicker(this.value)" autofocus />
+        </div>
+        <div class="ep-body" id="ep-body">
+            ${buildEmojiPickerBody('')}
+        </div>
+    `;
+
+    // Position near the + button
+    document.body.appendChild(picker);
+    const rect = btn.getBoundingClientRect();
+    const pickerW = 280;
+    let left = rect.left;
+    if (left + pickerW > window.innerWidth - 8) left = window.innerWidth - pickerW - 8;
+    picker.style.left = left + 'px';
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow >= 240) {
+        picker.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+    } else {
+        picker.style.top = (rect.top + window.scrollY - 6) + 'px';
+        picker.style.transform = 'translateY(-100%)';
+    }
+
+    setTimeout(() => document.addEventListener('click', onPickerOutsideClick, { once: true }), 0);
+}
+
+function buildEmojiPickerBody(query) {
+    const q = query.trim().toLowerCase();
+    if (q) {
+        const matches = EMOJI_FLAT.filter(e => e.includes(q));
+        if (!matches.length) return `<div class="ep-empty">No results 😕</div>`;
+        return `<div class="ep-grid">${matches.map(e => `<button class="ep-emoji" onclick="pickEmoji('${e}')">${e}</button>`).join('')}</div>`;
+    }
+    return Object.entries(EMOJI_PICKER_DATA).map(([cat, emojis]) => {
+        const safe = emojis.filter(isEmojiSafe);
+        if (!safe.length) return '';
+        return `<div class="ep-cat-label">${cat}</div>
+        <div class="ep-grid">${safe.map(e => `<button class="ep-emoji" onclick="pickEmoji('${e}')">${e}</button>`).join('')}</div>`;
     }).join('');
+}
+
+function filterEmojiPicker(query) {
+    const body = document.getElementById('ep-body');
+    if (!body) return;
+    const isBanned = BANNED_WORDS.some(w => query.toLowerCase().includes(w.toLowerCase()));
+    body.innerHTML = isBanned
+        ? `<div class="ep-empty">That search isn't allowed 🚫</div>`
+        : buildEmojiPickerBody(query);
+}
+
+function pickEmoji(emoji) {
+    if (_pickerArtId !== null) {
+        if (_pickerContext === 'wall') addWallReaction(_pickerArtId, emoji);
+        else addReaction(_pickerArtId, emoji);
+    }
+    closeEmojiPicker();
+}
+
+function closeEmojiPicker() {
+    const p = document.getElementById('emoji-picker');
+    if (p) p.remove();
+    document.removeEventListener('click', onPickerOutsideClick);
+}
+
+function onPickerOutsideClick(e) {
+    const p = document.getElementById('emoji-picker');
+    if (p && !p.contains(e.target)) closeEmojiPicker();
 }
 
 // ═══════════════════════════════════════════════
@@ -367,7 +480,7 @@ function renderComments(artId) {
     const list = document.getElementById('comments-list');
     const comments = getComments(artId);
     if (comments.length === 0) {
-        list.innerHTML = '<span class="comment-no">No comments yet — be the first! ✨</span>';
+        list.innerHTML = '<span class="comment-no">No comments yet, be the first! ✨</span>';
         return;
     }
     list.innerHTML = comments.map((c, i) => `
@@ -390,12 +503,25 @@ function deleteComment(artId, index) {
     renderComments(artId);
 }
 
-function isBanned(text) {
+function isBannedLocal(text) {
     const lower = text.toLowerCase();
     return BANNED_WORDS.some(w => {
         const escaped = w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         return new RegExp(`\\b${escaped}\\b`).test(lower);
     });
+}
+
+async function isBanned(text) {
+    if (isBannedLocal(text)) return true;
+    try {
+        const res = await fetch(
+            `https://www.purgomalum.com/service/containsprofanity?text=${encodeURIComponent(text)}`
+        );
+        const result = await res.text();
+        return result.trim() === 'true';
+    } catch {
+        return false;
+    }
 }
 
 function showCommentWarning(msg) {
@@ -406,14 +532,41 @@ function showCommentWarning(msg) {
     el._timer = setTimeout(() => el.classList.remove('visible'), 3500);
 }
 
-function postComment() {
+function showSassyBannedPopup() {
+    // Remove any existing one first
+    const existing = document.getElementById('sassy-popup');
+    if (existing) existing.remove();
+
+    const el = document.createElement('div');
+    el.id = 'sassy-popup';
+    el.className = 'sassy-popup';
+    el.innerHTML = `
+        <div class="sassy-popup-inner">
+            <span class="sassy-popup-emoji">🙄</span>
+            <div class="sassy-popup-text">
+                <strong>Come on, really?</strong>
+                <span>Get your negative feedback somewhere else.</span>
+            </div>
+            <button class="sassy-popup-close" onclick="this.closest('.sassy-popup').remove()">✕</button>
+        </div>
+    `;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    clearTimeout(el._t);
+    el._t = setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 400);
+    }, 4000);
+}
+
+async function postComment() {
     if (!currentArtwork) return;
     const input = document.getElementById('comment-input');
     const text = input.value.trim();
     if (!text) return;
 
-    if (isBanned(text)) {
-        showCommentWarning('⚠️ Your comment was flagged and could not be posted.');
+    if (await isBanned(text)) {
+        showSassyBannedPopup();
         input.value = '';
         return;
     }
@@ -466,12 +619,88 @@ function getPublicPosts() {
 function savePublicPosts(posts) {
     localStorage.setItem('public-posts', JSON.stringify(posts));
 }
+function getPending() {
+    return JSON.parse(localStorage.getItem('pending-submissions') || '[]');
+}
+function savePending(entry) {
+    const pending = getPending();
+    pending.push(entry);
+    localStorage.setItem('pending-submissions', JSON.stringify(pending));
+}
+function removePending(id) {
+    const pending = getPending().filter(p => p.id !== id);
+    localStorage.setItem('pending-submissions', JSON.stringify(pending));
+}
+
+function approveToWall(id) {
+    const pending = getPending();
+    const item = pending.find(p => p.id === id);
+    if (!item) return;
+    removePending(id);
+    const posts = getPublicPosts();
+    posts.push(item);
+    savePublicPosts(posts);
+    renderPending();
+    renderWall();
+    updatePendingBadge();
+    showToast('✅ Approved! Now on the Wall!');
+}
+function approvePrivate(id) {
+    const pending = getPending();
+    const item = pending.find(p => p.id === id);
+    if (!item) return;
+    removePending(id);
+    const subs = getSubmissions();
+    subs.push(item);
+    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
+    renderPending();
+    updatePendingBadge();
+    showToast('🔒 Kept as private submission.');
+}
+function deletePending(id) {
+    removePending(id);
+    renderPending();
+    updatePendingBadge();
+    showToast('🗑 Submission deleted.');
+}
+function deletePrivateSub(idx) {
+    const subs = getSubmissions();
+    subs.splice(idx, 1);
+    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
+    renderSubmissions();
+    showToast('🗑 Submission deleted.');
+}
 
 function setWallFilter(filter, el) {
     wallFilter = filter;
     document.querySelectorAll('.wall-chip').forEach(c => c.classList.remove('active'));
     if (el) el.classList.add('active');
     renderWall();
+}
+
+function getWallReactions(postId) {
+    return JSON.parse(localStorage.getItem('wall-reactions-' + postId) || '{}');
+}
+function saveWallReactions(postId, data) {
+    localStorage.setItem('wall-reactions-' + postId, JSON.stringify(data));
+}
+function addWallReaction(postId, emoji) {
+    if (!isEmojiAllowed(emoji)) { showToast('That reaction isn\'t allowed here 🚫'); return; }
+    const data = getWallReactions(postId);
+    data[emoji] = (data[emoji] || 0) + 1;
+    saveWallReactions(postId, data);
+    renderWallReactions(postId);
+}
+function renderWallReactions(postId) {
+    const container = document.getElementById('wall-reactions-' + postId);
+    if (!container) return;
+    const data = getWallReactions(postId);
+    const used = Object.keys(data).filter(e => data[e] > 0);
+    container.innerHTML = used.map(e =>
+        `<button class="reaction-btn has-count wall-reaction-btn" onclick="addWallReaction('${postId}','${e}')" title="React with ${e}">
+            ${e}<span class="reaction-count">${data[e]}</span>
+        </button>`
+    ).join('') + `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`;
 }
 
 function renderWall() {
@@ -481,7 +710,7 @@ function renderWall() {
     if (wallFilter !== 'all') posts = posts.filter(p => p.type === wallFilter);
 
     if (posts.length === 0) {
-        grid.innerHTML = '<div class="wall-empty"><span>🌸</span><p>No public posts yet — be the first to share something! ✨</p></div>';
+        grid.innerHTML = '<div class="wall-empty"><span>🌸</span><p>No public posts yet! Be the first to share something! ✨</p></div>';
         return;
     }
 
@@ -493,29 +722,40 @@ function renderWall() {
         const deleteBtn = adminLoggedIn
             ? `<button class="comment-delete" onclick="deletePublicPost('${post.id}')" title="Delete">🗑</button>`
             : '';
+        const reactionsHtml = buildWallReactionsHtml(post.id);
+
+        const footer = `<div class="wall-card-footer">
+                    <span class="wall-type-badge">${post.type === 'drawing' ? '🎨 Drawing' : '💬 Message'}</span>
+                    ${sender}
+                    <span class="wall-date">${escHtml(date)}</span>
+                    ${deleteBtn}
+                </div>
+                <div class="wall-reactions-row" id="wall-reactions-${post.id}">
+                    ${reactionsHtml}
+                </div>`;
 
         if (post.type === 'drawing') {
             return `<div class="wall-card">
                 <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
-                <div class="wall-card-footer">
-                    <span class="wall-type-badge">🎨 Drawing</span>
-                    ${sender}
-                    <span class="wall-date">${escHtml(date)}</span>
-                    ${deleteBtn}
-                </div>
+                ${footer}
             </div>`;
         } else {
             return `<div class="wall-card">
                 <div class="wall-card-text">${escHtml(post.data)}</div>
-                <div class="wall-card-footer">
-                    <span class="wall-type-badge">💬 Message</span>
-                    ${sender}
-                    <span class="wall-date">${escHtml(date)}</span>
-                    ${deleteBtn}
-                </div>
+                ${footer}
             </div>`;
         }
     }).join('');
+}
+
+function buildWallReactionsHtml(postId) {
+    const data = getWallReactions(postId);
+    const used = Object.keys(data).filter(e => data[e] > 0);
+    return used.map(e =>
+        `<button class="reaction-btn has-count wall-reaction-btn" onclick="addWallReaction('${postId}','${e}')" title="React with ${e}">
+            ${e}<span class="reaction-count">${data[e]}</span>
+        </button>`
+    ).join('') + `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`;
 }
 
 function deletePublicPost(id) {
@@ -656,51 +896,71 @@ function saveSubmission(submission) {
     localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
 }
 
-function submitDrawing() {
-    const canvas = document.getElementById('draw-canvas');
+function isCanvasBlank(canvas) {
     const ctx = canvas.getContext('2d');
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    const isBlank = pixels.every((v, i) => (i % 4 === 3) ? v === 255 : v === 255);
-    if (isBlank) { showToast('Draw something first! 🖌️'); return; }
+    // Blank = every pixel is white (255,255,255,255) or fully transparent
+    for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] === 0) continue; // transparent — skip
+        if (pixels[i] !== 255 || pixels[i+1] !== 255 || pixels[i+2] !== 255) return false;
+    }
+    return true;
+}
 
-    const dataUrl = canvas.toDataURL('image/png');
+function safeCanvasDataUrl(canvas) {
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // JPEG keeps size small
+    const MAX_BYTES = 2 * 1024 * 1024; // 2 MB cap
+    if (dataUrl.length > MAX_BYTES) {
+        // Re-export at lower quality if too large
+        return canvas.toDataURL('image/jpeg', 0.5);
+    }
+    return dataUrl;
+}
+
+function submitDrawing() {
+    const canvas = document.getElementById('draw-canvas');
+    if (isCanvasBlank(canvas)) { showToast('Draw something first! 🖌️'); return; }
+
+    const dataUrl = safeCanvasDataUrl(canvas);
     const name = getSenderName('draw');
     const vis  = getVisibility('draw');
-    const entry = { type: 'drawing', data: dataUrl, sender: name, timestamp: new Date().toISOString() };
+    const entry = {
+        id: String(Date.now() + Math.floor(Math.random() * 1000)),
+        type: 'drawing', data: dataUrl, sender: name,
+        timestamp: new Date().toISOString(), requestedVis: vis
+    };
 
+    savePending(entry);
     if (vis === 'public') {
-        const posts = getPublicPosts();
-        posts.push({ ...entry, id: String(Date.now() + Math.floor(Math.random() * 1000)) });
-        savePublicPosts(posts);
-        showToast('Drawing posted on the Wall! 🌐✨');
+        showToast('Drawing submitted! Waiting for approval 🌐✨');
     } else {
-        saveSubmission(entry);
         showToast('Drawing sent privately! 🔒✨ Thank you!');
     }
     clearCanvas();
 }
 
-function submitMessage() {
+async function submitMessage() {
     const ta = document.getElementById('message-textarea');
     const text = ta.value.trim();
     if (!text) { showToast('Please write something first! 💬'); return; }
 
-    if (isBanned(text)) {
-        showCommentWarning('⚠️ Your message was flagged and could not be posted.');
+    if (await isBanned(text)) {
+        showSassyBannedPopup();
         return;
     }
 
     const name = getSenderName('message');
     const vis  = getVisibility('message');
-    const entry = { type: 'message', data: text, sender: name, timestamp: new Date().toISOString() };
+    const entry = {
+        id: String(Date.now() + Math.floor(Math.random() * 1000)),
+        type: 'message', data: text, sender: name,
+        timestamp: new Date().toISOString(), requestedVis: vis
+    };
 
+    savePending(entry);
     if (vis === 'public') {
-        const posts = getPublicPosts();
-        posts.push({ ...entry, id: String(Date.now() + Math.floor(Math.random() * 1000)) });
-        savePublicPosts(posts);
-        showToast('Message posted on the Wall! 🌐✨');
+        showToast('Message submitted! Waiting for approval 🌐✨');
     } else {
-        saveSubmission(entry);
         showToast('Message sent privately! 🔒✨ Thank you!');
     }
     ta.value = '';
@@ -737,6 +997,7 @@ function submitPassword() {
     if (val === SITE_CONFIG.adminPassword) {
         closeAdminPrompt();
         adminLoggedIn = true;
+        document.body.classList.add('admin-logged');
         openAdmin();
     } else {
         document.getElementById('pw-error').textContent = 'Wrong password!';
@@ -750,7 +1011,8 @@ function onPasswordKeydown(e) {
 }
 
 function openAdmin() {
-    showAdminTab('add-art');
+    showAdminTab('pending');   // open to pending first so they see what needs review
+    updatePendingBadge();
     const panel = document.getElementById('admin-panel');
     panel.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -771,6 +1033,14 @@ function closeAdmin() {
     });
 }
 
+function updatePendingBadge() {
+    const badge = document.getElementById('pending-badge');
+    if (!badge) return;
+    const count = getPending().length;
+    badge.textContent = count > 0 ? count : '';
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
 function showAdminTab(tab) {
     document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
@@ -779,69 +1049,87 @@ function showAdminTab(tab) {
     const content = document.getElementById('admin-tab-' + tab);
     if (content) content.classList.add('active');
 
+    if (tab === 'pending')     renderPending();
     if (tab === 'submissions') renderSubmissions();
-    if (tab === 'my-art') renderAdminArtList();
+    if (tab === 'my-art')      renderAdminArtList();
+    updatePendingBadge();
 }
 
 // ── My Art tab ────────────────────────────────
+function getArtOverrides() {
+    return JSON.parse(localStorage.getItem('art-overrides') || '{}');
+}
+
+function getHiddenArtIds() {
+    return JSON.parse(localStorage.getItem('hidden-art-ids') || '[]');
+}
+
 function renderAdminArtList() {
     const list = document.getElementById('admin-art-list');
-    if (!allArtworks.length) {
-        list.innerHTML = '<div class="no-submissions">No artworks yet! 🌸</div>';
+    const hidden = getHiddenArtIds();
+    const visible = allArtworks.filter(a => !hidden.includes(a.id));
+
+    if (!visible.length) {
+        list.innerHTML = '<div class="no-submissions">No artworks yet! Add some above 🎨</div>';
         return;
     }
 
-    list.innerHTML = allArtworks.map(art => {
-        const overrides = getArtOverrides();
-        const o = overrides[art.id] || {};
-        const title = o.title || art.title;
-        const desc  = o.description || art.description;
-        const comments = getComments(art.id);
+    list.innerHTML = visible.map(art => {
+        const comments  = getComments(art.id);
         const reactions = getReactions(art.id);
-        const reactionSummary = REACTION_EMOJIS
-            .filter(e => reactions[e] > 0)
-            .map(e => `${e}${reactions[e]}`).join(' ');
+        const reactionSummary = Object.entries(reactions)
+            .filter(([, c]) => c > 0)
+            .map(([e, c]) => `${e}${c}`).join(' ');
+        const tags = (art.tags || []).join(', ');
+        const isExtra = !artworks.find(a => a.id === art.id); // from data.js?
 
         return `
-        <div class="manage-art-item" id="manage-${art.id}">
-            <div class="manage-art-row">
-                <img class="manage-art-thumb" src="${escHtml(art.image)}" alt="${escHtml(title)}">
-                <div class="manage-art-info">
-                    <div class="manage-art-title">
-                        ${escHtml(title)}
+        <div class="mai-card" id="manage-${art.id}">
+            <!-- ── Header row ── -->
+            <div class="mai-header">
+                <img class="mai-thumb" src="${escHtml(art.image)}" alt="${escHtml(art.title)}" onerror="this.style.opacity=0.3">
+                <div class="mai-info">
+                    <div class="mai-title">
+                        ${escHtml(art.title)}
                         ${art.nsfw ? '<span class="nsfw-badge">NSFW</span>' : ''}
+                        ${isExtra ? '' : '<span class="mai-badge-static" title="Defined in data.js">data.js</span>'}
                     </div>
-                    <div class="manage-art-meta">
+                    <div class="mai-meta">
                         <span>📅 ${escHtml(art.date)}</span>
-                        <span>💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}</span>
+                        <span class="mai-comment-count" id="mai-ccount-${art.id}">💬 ${comments.length}</span>
                         ${reactionSummary ? `<span>${reactionSummary}</span>` : ''}
                     </div>
+                    ${(art.tags||[]).length ? `<div class="mai-tags">${(art.tags||[]).map(t=>`<span class="art-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
                 </div>
-                <div class="manage-art-btns">
-                    <button class="manage-btn" onclick="toggleManageComments(${art.id})">💬</button>
-                    <button class="manage-btn" onclick="toggleManageEdit(${art.id})">✏️</button>
+                <div class="mai-actions">
+                    <button class="mai-btn" onclick="maiToggle(${art.id},'comments')" title="Comments">💬</button>
+                    <button class="mai-btn" onclick="maiToggle(${art.id},'edit')" title="Edit">✏️</button>
+                    <button class="mai-btn mai-btn-del" onclick="deleteArtwork(${art.id})" title="Delete artwork">🗑</button>
                 </div>
             </div>
 
-            <!-- Inline comments -->
-            <div class="manage-comments hidden" id="manage-comments-${art.id}">
-                <div class="manage-section-label">Comments</div>
-                <div class="manage-comments-list" id="manage-comments-list-${art.id}">
+            <!-- ── Comments panel ── -->
+            <div class="mai-panel hidden" id="mai-comments-${art.id}">
+                <div class="mai-panel-label">💬 Comments (${comments.length})</div>
+                <div class="mai-comments-list" id="mai-clist-${art.id}">
                     ${renderManageComments(art.id)}
                 </div>
             </div>
 
-            <!-- Inline edit form -->
-            <div class="manage-edit hidden" id="manage-edit-${art.id}">
-                <div class="manage-section-label">Edit</div>
-                <div class="manage-edit-form">
-                    <input type="text" class="manage-input" id="edit-title-${art.id}"
-                        value="${escHtml(title)}" placeholder="Title">
-                    <textarea class="manage-textarea" id="edit-desc-${art.id}"
-                        placeholder="Description">${escHtml(desc)}</textarea>
-                    <div class="manage-edit-actions">
-                        <button class="btn-submit" onclick="saveArtEdit(${art.id})">Save ✨</button>
-                        <button class="manage-btn-cancel" onclick="toggleManageEdit(${art.id})">Cancel</button>
+            <!-- ── Edit panel ── -->
+            <div class="mai-panel hidden" id="mai-edit-${art.id}">
+                <div class="mai-panel-label">✏️ Edit Artwork</div>
+                <div class="mai-edit-form">
+                    <input  class="manage-input"    id="edit-title-${art.id}" value="${escHtml(art.title)}" placeholder="Title *">
+                    <textarea class="manage-textarea" id="edit-desc-${art.id}" placeholder="Description">${escHtml(art.description||'')}</textarea>
+                    <input  class="manage-input"    id="edit-image-${art.id}" value="${escHtml(art.image||'')}" placeholder="Image URL">
+                    <input  class="manage-input"    id="edit-tags-${art.id}"  value="${escHtml(tags)}"  placeholder="Tags (comma separated)">
+                    <label class="form-checkbox-row" style="margin:0.25rem 0">
+                        <input type="checkbox" id="edit-nsfw-${art.id}" ${art.nsfw ? 'checked' : ''}> Mark as NSFW
+                    </label>
+                    <div class="mai-edit-actions">
+                        <button class="sub-btn sub-btn-approve" onclick="saveArtEdit(${art.id})">Save ✨</button>
+                        <button class="manage-btn-cancel" onclick="maiToggle(${art.id},'edit')">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -849,61 +1137,96 @@ function renderAdminArtList() {
     }).join('');
 }
 
+function maiToggle(artId, panel) {
+    const panels = ['comments', 'edit'];
+    panels.forEach(p => {
+        const el = document.getElementById(`mai-${p}-${artId}`);
+        if (el) {
+            if (p === panel) el.classList.toggle('hidden');
+            else el.classList.add('hidden');
+        }
+    });
+}
+
 function renderManageComments(artId) {
     const comments = getComments(artId);
-    if (!comments.length) return '<span class="comment-no">No comments yet.</span>';
+    if (!comments.length) return '<span class="comment-no" style="padding:0.5rem 0;display:block">No comments yet.</span>';
     return comments.map((c, i) => `
-        <div class="manage-comment-item">
-            <div class="manage-comment-text">${escHtml(c.text)}</div>
-            <div class="manage-comment-foot">
+        <div class="mai-comment-item">
+            <div class="mai-comment-text">${escHtml(c.text)}</div>
+            <div class="mai-comment-foot">
                 <span class="comment-meta">${escHtml(formatCommentDate(c.date))}</span>
-                <button class="comment-delete" onclick="deleteManageComment(${artId}, ${i})" title="Delete">🗑</button>
+                <button class="sub-btn sub-btn-delete" style="padding:0.2rem 0.6rem;font-size:0.72rem" onclick="deleteManageComment(${artId},${i})">🗑 Delete</button>
             </div>
         </div>`).join('');
 }
 
 function deleteManageComment(artId, index) {
-    if (!confirm('Delete this comment?')) return;
     const comments = getComments(artId);
     comments.splice(index, 1);
     saveComments(artId, comments);
-    document.getElementById(`manage-comments-list-${artId}`).innerHTML = renderManageComments(artId);
-    // Update meta count
+    // Refresh only the comment list, not the whole panel
+    const cl = document.getElementById(`mai-clist-${artId}`);
+    if (cl) cl.innerHTML = renderManageComments(artId);
+    const cc = document.getElementById(`mai-ccount-${artId}`);
+    if (cc) cc.textContent = `💬 ${comments.length}`;
+    // Refresh lightbox comments if open
+    if (currentArtwork && currentArtwork.id === artId) renderComments(artId);
+}
+
+function deleteArtwork(artId) {
+    if (!confirm('Remove this artwork from the gallery?')) return;
+    const isExtra = !artworks.find(a => a.id === artId);
+    if (isExtra) {
+        // Remove from extra-artworks in localStorage
+        const extra = JSON.parse(localStorage.getItem('extra-artworks') || '[]');
+        localStorage.setItem('extra-artworks', JSON.stringify(extra.filter(a => a.id !== artId)));
+    } else {
+        // Hide data.js artworks via hidden list
+        const hidden = getHiddenArtIds();
+        if (!hidden.includes(artId)) hidden.push(artId);
+        localStorage.setItem('hidden-art-ids', JSON.stringify(hidden));
+    }
+    allArtworks = allArtworks.filter(a => a.id !== artId);
+    renderGallery();
+    renderTagChips();
     renderAdminArtList();
+    showToast('Artwork removed from gallery.');
 }
 
-function toggleManageComments(artId) {
-    const el = document.getElementById(`manage-comments-${artId}`);
-    const editEl = document.getElementById(`manage-edit-${artId}`);
-    editEl.classList.add('hidden');
-    el.classList.toggle('hidden');
-}
-
-function toggleManageEdit(artId) {
-    const el = document.getElementById(`manage-edit-${artId}`);
-    const commentsEl = document.getElementById(`manage-comments-${artId}`);
-    commentsEl.classList.add('hidden');
-    el.classList.toggle('hidden');
-}
-
-function getArtOverrides() {
-    return JSON.parse(localStorage.getItem('art-overrides') || '{}');
-}
+// toggleManageComments / toggleManageEdit kept as aliases for compatibility
+function toggleManageComments(artId) { maiToggle(artId, 'comments'); }
+function toggleManageEdit(artId)     { maiToggle(artId, 'edit'); }
 
 function saveArtEdit(artId) {
     const title = document.getElementById(`edit-title-${artId}`).value.trim();
     const desc  = document.getElementById(`edit-desc-${artId}`).value.trim();
+    const image = document.getElementById(`edit-image-${artId}`)?.value.trim();
+    const tagsRaw = document.getElementById(`edit-tags-${artId}`)?.value.trim();
+    const nsfw  = document.getElementById(`edit-nsfw-${artId}`)?.checked;
+
     if (!title) { showToast('Title cannot be empty!'); return; }
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
 
     const overrides = getArtOverrides();
-    overrides[artId] = { title, description: desc };
+    overrides[artId] = { title, description: desc, image, tags, nsfw };
     localStorage.setItem('art-overrides', JSON.stringify(overrides));
 
-    // Apply to live allArtworks array
+    // Apply to live array
     const art = allArtworks.find(a => a.id === artId);
-    if (art) { art.title = title; art.description = desc; }
+    if (art) { art.title = title; art.description = desc; if (image) art.image = image; art.tags = tags; art.nsfw = nsfw; }
+
+    // Also update extra-artworks if it's a custom one
+    const isExtra = !artworks.find(a => a.id === artId);
+    if (isExtra) {
+        const extra = JSON.parse(localStorage.getItem('extra-artworks') || '[]');
+        const idx = extra.findIndex(a => a.id === artId);
+        if (idx !== -1) { extra[idx] = { ...extra[idx], title, description: desc, image: image || extra[idx].image, tags, nsfw }; }
+        localStorage.setItem('extra-artworks', JSON.stringify(extra));
+    }
 
     renderGallery();
+    renderTagChips();
     renderAdminArtList();
     showToast('Artwork updated! ✨');
 }
@@ -946,52 +1269,235 @@ function submitNewArt() {
 }
 
 // ── Submissions view ───────────────────────────
-function renderSubmissions() {
-    const list = document.getElementById('submissions-list');
+// shared helpers for submission rendering
+function _subTypeBadge(s) {
+    return s.type === 'drawing' ? '🎨 Drawing' : '💬 Message';
+}
+function _subSender(s) {
+    return s.sender
+        ? `<span class="submission-sender">✏️ ${escHtml(s.sender)}</span>`
+        : `<span class="submission-sender anon">🙈 Anonymous</span>`;
+}
+function _subContent(s) {
+    return s.type === 'drawing'
+        ? `<img src="${s.data}" class="sub-img" alt="drawing">`
+        : `<p class="sub-text">${escHtml(s.data)}</p>`;
+}
 
-    const privateSubs = getSubmissions().slice().reverse();
-    const publicPosts  = getPublicPosts().slice().reverse();
+function renderPending() {
+    const list = document.getElementById('pending-list');
+    if (!list) return;
+    const pending = getPending().slice().reverse();
+    updatePendingBadge();
 
-    if (privateSubs.length === 0 && publicPosts.length === 0) {
-        list.innerHTML = '<div class="no-submissions">No submissions yet! 🌸</div>';
+    if (!pending.length) {
+        list.innerHTML = '<div class="no-submissions">✅ Nothing pending, you\'re all caught up!</div>';
         return;
     }
 
-    function renderItem(s, isPublic) {
-        const date = formatCommentDate(s.timestamp);
-        const senderLabel = s.sender
-            ? `<span class="submission-sender">✏️ ${escHtml(s.sender)}</span>`
-            : `<span class="submission-sender anon">🙈 Anonymous</span>`;
-        const visiBadge = isPublic
-            ? `<span class="submission-type-badge" style="background:rgba(60,200,100,0.18);color:#80ffaa;border-color:rgba(60,200,100,0.3)">🌐 Public</span>`
-            : `<span class="submission-type-badge" style="background:rgba(239,116,92,0.15);color:var(--accent)">🔒 Private</span>`;
-        const deleteBtn = isPublic
-            ? `<button class="comment-delete" style="opacity:0.6" onclick="deletePublicPost('${s.id}');renderSubmissions();" title="Delete">🗑</button>`
-            : '';
-        const typeBadge = `<span class="submission-type-badge">${s.type === 'drawing' ? '🎨 Drawing' : '💬 Message'}</span>`;
-        const content = s.type === 'drawing'
-            ? `<img src="${s.data}" alt="Drawing submission">`
-            : `<p>${escHtml(s.data)}</p>`;
-        return `<div class="submission-item">
+    list.innerHTML = pending.map(s => {
+        const reqBadge = s.requestedVis === 'public'
+            ? `<span class="sub-vis-badge pub">🌐 Wants Public</span>`
+            : `<span class="sub-vis-badge priv">🔒 Private</span>`;
+        return `<div class="submission-item submission-pending">
             <div class="submission-meta">
-                ${visiBadge} ${typeBadge} ${senderLabel}
-                <span>${escHtml(date)}</span>
-                ${deleteBtn}
+                ${reqBadge}
+                <span class="submission-type-badge">${_subTypeBadge(s)}</span>
+                ${_subSender(s)}
+                <span>${escHtml(formatCommentDate(s.timestamp))}</span>
             </div>
-            ${content}
+            ${_subContent(s)}
+            <div class="sub-actions">
+                <button class="sub-btn sub-btn-approve" onclick="approveToWall('${s.id}')">✅ Approve → Wall</button>
+                <button class="sub-btn sub-btn-private" onclick="approvePrivate('${s.id}')">🔒 Keep Private</button>
+                <button class="sub-btn sub-btn-delete" onclick="deletePending('${s.id}')">🗑 Delete</button>
+            </div>
         </div>`;
+    }).join('');
+}
+
+function renderSubmissions() {
+    const list = document.getElementById('submissions-list');
+    if (!list) return;
+    const publicPosts = getPublicPosts().slice().reverse();
+    const privateSubs = getSubmissions().slice().reverse();
+
+    if (!publicPosts.length && !privateSubs.length) {
+        list.innerHTML = '<div class="no-submissions">No approved submissions yet! 🌸</div>';
+        return;
     }
 
     let html = '';
-    if (publicPosts.length > 0) {
-        html += `<div class="submissions-section-label">🌐 Public Wall Posts (${publicPosts.length})</div>`;
-        html += publicPosts.map(s => renderItem(s, true)).join('');
+
+    if (publicPosts.length) {
+        html += `<div class="submissions-section-label">🌐 Public Wall (${publicPosts.length})</div>`;
+        html += publicPosts.map(s => `
+            <div class="submission-item">
+                <div class="submission-meta">
+                    <span class="sub-vis-badge pub">🌐 Public</span>
+                    <span class="submission-type-badge">${_subTypeBadge(s)}</span>
+                    ${_subSender(s)}
+                    <span>${escHtml(formatCommentDate(s.timestamp))}</span>
+                </div>
+                ${_subContent(s)}
+                <div class="sub-actions">
+                    <button class="sub-btn sub-btn-delete" onclick="deletePublicPost('${s.id}');renderSubmissions()">🗑 Delete from Wall</button>
+                </div>
+            </div>`).join('');
     }
-    if (privateSubs.length > 0) {
-        html += `<div class="submissions-section-label">🔒 Private Submissions (${privateSubs.length})</div>`;
-        html += privateSubs.map(s => renderItem(s, false)).join('');
+
+    if (privateSubs.length) {
+        html += `<div class="submissions-section-label">🔒 Private Inbox (${privateSubs.length})</div>`;
+        html += privateSubs.map((s, i) => `
+            <div class="submission-item">
+                <div class="submission-meta">
+                    <span class="sub-vis-badge priv">🔒 Private</span>
+                    <span class="submission-type-badge">${_subTypeBadge(s)}</span>
+                    ${_subSender(s)}
+                    <span>${escHtml(formatCommentDate(s.timestamp))}</span>
+                </div>
+                ${_subContent(s)}
+                <div class="sub-actions">
+                    <button class="sub-btn sub-btn-approve" onclick="approveToWall('${s.id || i}')">✅ Move → Wall</button>
+                    <button class="sub-btn sub-btn-delete" onclick="deletePrivateSub(${privateSubs.length - 1 - i})">🗑 Delete</button>
+                </div>
+            </div>`).join('');
     }
+
     list.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+// MOBILE DRAW PANEL
+// ═══════════════════════════════════════════════
+let mobileErasing = false;
+let mobilePainting = false;
+let mobileLastX = 0;
+let mobileLastY = 0;
+
+function setDrawMode(mode) {
+    document.getElementById('draw-mode-simple').classList.toggle('hidden', mode !== 'simple');
+    document.getElementById('draw-mode-wiggly').classList.toggle('hidden', mode !== 'wiggly');
+    document.getElementById('dmt-simple').classList.toggle('active', mode === 'simple');
+    document.getElementById('dmt-wiggly').classList.toggle('active', mode === 'wiggly');
+}
+
+function openMobileDrawPanel() {
+    const panel = document.getElementById('mobile-draw-panel');
+    panel.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setupMobileCanvas();
+}
+
+function closeMobileDrawPanel() {
+    const panel = document.getElementById('mobile-draw-panel');
+    panel.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function setupMobileCanvas() {
+    const canvas = document.getElementById('mobile-draw-canvas');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    updateMobileSizeDot();
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+    }
+
+    function startDraw(e) {
+        e.preventDefault();
+        mobilePainting = true;
+        const { x, y } = getPos(e);
+        mobileLastX = x; mobileLastY = y;
+    }
+
+    function draw(e) {
+        e.preventDefault();
+        if (!mobilePainting) return;
+        const ctx = canvas.getContext('2d');
+        const { x, y } = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(mobileLastX, mobileLastY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = mobileErasing ? '#fff' : getMobileColor();
+        ctx.lineWidth = getMobileBrushSize();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        mobileLastX = x; mobileLastY = y;
+    }
+
+    function stopDraw(e) { mobilePainting = false; }
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = draw;
+    canvas.onmouseup = stopDraw;
+    canvas.onmouseleave = stopDraw;
+    canvas.ontouchstart = startDraw;
+    canvas.ontouchmove = draw;
+    canvas.ontouchend = stopDraw;
+
+    document.getElementById('mdb-size').addEventListener('input', updateMobileSizeDot);
+}
+
+function getMobileColor() {
+    return document.getElementById('mdb-color').value;
+}
+
+function getMobileBrushSize() {
+    return parseInt(document.getElementById('mdb-size').value, 10);
+}
+
+function updateMobileSizeDot() {
+    const size = getMobileBrushSize();
+    const dot = document.getElementById('mdb-size-dot');
+    const px = Math.max(4, Math.min(size, 32));
+    dot.style.width = px + 'px';
+    dot.style.height = px + 'px';
+}
+
+function toggleMobileEraser(btn) {
+    mobileErasing = !mobileErasing;
+    btn.classList.toggle('active', mobileErasing);
+}
+
+function clearMobileCanvas() {
+    const canvas = document.getElementById('mobile-draw-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    mobileErasing = false;
+    const eraserBtn = document.getElementById('mdb-eraser-btn');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+}
+
+function submitMobileDrawing() {
+    const canvas = document.getElementById('mobile-draw-canvas');
+    if (isCanvasBlank(canvas)) { showToast('Draw something first! 🖌️'); return; }
+    const dataUrl = safeCanvasDataUrl(canvas);
+    const nameEl = document.getElementById('sender-name');
+    const name = nameEl ? nameEl.value.trim() : '';
+    const submission = {
+        id: Date.now(),
+        type: 'drawing',
+        image: dataUrl,
+        name: name || 'Anonymous',
+        message: '',
+        isPublic: false,
+        timestamp: new Date().toISOString()
+    };
+    const subs = JSON.parse(localStorage.getItem('artSubmissions') || '[]');
+    subs.push(submission);
+    localStorage.setItem('artSubmissions', JSON.stringify(subs));
+    clearMobileCanvas();
+    closeMobileDrawPanel();
+    alert('Drawing sent! ✨');
 }
 
 // ═══════════════════════════════════════════════

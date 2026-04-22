@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WigglyPaint</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fdf6f0;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ---- Toolbar ---- */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      background: #fff4ec;
+      border-bottom: 2px dashed #e8c9b0;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .ctrl {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.78rem;
+      color: #7a5c44;
+      white-space: nowrap;
+    }
+    .ctrl input[type=color] {
+      width: 30px; height: 26px;
+      border: 1.5px solid #d4b09a;
+      padding: 1px; border-radius: 5px;
+      cursor: pointer; background: none;
+    }
+    .ctrl input[type=range] {
+      width: 64px;
+      accent-color: #e88c72;
+      cursor: pointer;
+    }
+    .sep { width: 1px; height: 18px; background: #e0c8b8; flex-shrink: 0; }
+
+    .wp-btn {
+      padding: 5px 11px;
+      border: 1.5px solid #d4a088;
+      background: #fff;
+      color: #7a5c44;
+      border-radius: 20px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .wp-btn:hover { background: #ffe8dd; border-color: #e88c72; }
+    .wp-btn.danger { border-color: #e07070; color: #c05050; }
+    .wp-btn.danger:hover { background: #ffe0e0; }
+    .wp-btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+
+    /* ---- Canvas ---- */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair;
+      min-height: 0;
+    }
+    #wp-canvas {
+      display: block;
+      touch-action: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ---- Action bar ---- */
+    #actions {
+      display: flex;
+      gap: 8px;
+      padding: 7px 10px;
+      background: #fff4ec;
+      border-top: 2px dashed #e8c9b0;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .action-left  { display: flex; gap: 6px; align-items: center; min-width: 0; }
+    .action-right { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .wp-btn.gif-btn {
+      background: #9b72cf;
+      border-color: #9b72cf;
+      color: #fff;
+      font-weight: 600;
+    }
+    .wp-btn.gif-btn:hover { background: #8560bb; border-color: #8560bb; }
+
+    .wp-btn.primary {
+      background: #e88c72;
+      border-color: #e88c72;
+      color: #fff;
+      font-weight: 600;
+    }
+    .wp-btn.primary:hover { background: #d4785e; border-color: #d4785e; }
+
+    #gif-status {
+      font-size: 0.72rem;
+      color: #9b72cf;
+      font-style: italic;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ---- Progress bar ---- */
+    #gif-progress-wrap {
+      display: none;
+      position: absolute;
+      bottom: 54px;
+      left: 0; right: 0;
+      height: 4px;
+      background: #e8d4f0;
+      z-index: 10;
+    }
+    #gif-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #9b72cf, #e88c72);
+      transition: width 0.1s;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <label class="ctrl" title="Brush color">
+    🎨 <input type="color" id="wp-color" value="#ef745c">
+  </label>
+  <div class="sep"></div>
+  <label class="ctrl" title="Brush size">
+    📏 <input type="range" id="wp-size" min="2" max="30" value="8">
+  </label>
+  <div class="sep"></div>
+  <label class="ctrl" title="Wiggle intensity (0 = no wiggle)">
+    🌀 <input type="range" id="wp-wiggle" min="0" max="25" value="6">
+  </label>
+  <div class="sep"></div>
+  <label class="ctrl" title="Canvas background color">
+    🖼 <input type="color" id="wp-bg" value="#fdf6f0">
+  </label>
+  <div class="sep"></div>
+  <button class="wp-btn" onclick="wpUndo()">↩ Undo</button>
+  <button class="wp-btn danger" onclick="wpClear()">✕ Clear</button>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="wp-canvas"></canvas>
+  <div id="gif-progress-wrap">
+    <div id="gif-progress-bar"></div>
+  </div>
+</div>
+
+<div id="actions">
+  <div class="action-left">
+    <button class="wp-btn gif-btn" id="btn-record" onclick="recordGif()">🎬 Record GIF (3s)</button>
+    <span id="gif-status"></span>
+  </div>
+  <div class="action-right">
+    <button class="wp-btn primary" id="btn-submit" onclick="submitToGallery()">📤 Submit</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+<script>
+// =============================================
+// WIGGLYPAINT
+// =============================================
+
+const canvas  = document.getElementById('wp-canvas');
+const ctx     = canvas.getContext('2d');
+const wrap    = document.getElementById('canvas-wrap');
+
+let strokes        = [];
+let curStroke      = null;
+let isDrawing      = false;
+let animTime       = 0;
+let rafId          = null;
+let lastGifDataUrl = null;
+let isRecording    = false;
+
+const colorPicker  = document.getElementById('wp-color');
+const sizePicker   = document.getElementById('wp-size');
+const wigglePicker = document.getElementById('wp-wiggle');
+const bgPicker     = document.getElementById('wp-bg');
+
+function getColor()  { return colorPicker.value; }
+function getSize()   { return parseInt(sizePicker.value, 10) || 8; }
+function getWiggle() { return parseInt(wigglePicker.value, 10); }
+function getBg()     { return bgPicker.value; }
+
+// ---- Resize canvas ----
+function resizeCanvas() {
+  const rect = wrap.getBoundingClientRect();
+  canvas.width  = Math.max(1, Math.floor(rect.width));
+  canvas.height = Math.max(1, Math.floor(rect.height));
+}
+
+// ---- Pointer helpers ----
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  if (e.touches && e.touches[0]) {
+    return {
+      x: (e.touches[0].clientX - rect.left) * scaleX,
+      y: (e.touches[0].clientY - rect.top)  * scaleY
+    };
+  }
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top)  * scaleY
+  };
+}
+
+// ---- Draw events ----
+function startDraw(e) {
+  if (isRecording) return;
+  e.preventDefault();
+  isDrawing = true;
+  const pos = getPos(e);
+  curStroke = { points: [pos], color: getColor(), size: getSize() };
+}
+
+function moveDraw(e) {
+  if (!isDrawing || isRecording) return;
+  e.preventDefault();
+  const pos  = getPos(e);
+  const last = curStroke.points[curStroke.points.length - 1];
+  const dx   = pos.x - last.x;
+  const dy   = pos.y - last.y;
+  if (dx * dx + dy * dy > 3) curStroke.points.push(pos);
+}
+
+function stopDraw() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  if (curStroke && curStroke.points.length >= 1) {
+    strokes.push(curStroke);
+  }
+  curStroke = null;
+}
+
+canvas.addEventListener('mousedown',  startDraw);
+canvas.addEventListener('mousemove',  moveDraw);
+canvas.addEventListener('mouseup',    stopDraw);
+canvas.addEventListener('mouseleave', stopDraw);
+canvas.addEventListener('touchstart', startDraw, { passive: false });
+canvas.addEventListener('touchmove',  moveDraw,  { passive: false });
+canvas.addEventListener('touchend',   stopDraw);
+
+// ---- Clear / Undo ----
+function wpClear() {
+  strokes = [];
+  curStroke = null;
+  lastGifDataUrl = null;
+  setStatus('');
+}
+
+function wpUndo() {
+  if (strokes.length > 0) {
+    strokes.pop();
+    lastGifDataUrl = null;
+    setStatus('');
+  }
+}
+
+// ---- Render a stroke with wiggle offset ----
+function drawStroke(stroke, t, wiggleAmt) {
+  const pts = stroke.points;
+  if (pts.length === 0) return;
+
+  ctx.beginPath();
+  ctx.strokeStyle = stroke.color;
+  ctx.lineWidth   = stroke.size;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  for (let i = 0; i < pts.length; i++) {
+    const wx = Math.sin(t * 2.2 + i * 0.45) * wiggleAmt;
+    const wy = Math.cos(t * 2.2 + i * 0.38 + 1.1) * wiggleAmt;
+    if (i === 0) ctx.moveTo(pts[i].x + wx, pts[i].y + wy);
+    else          ctx.lineTo(pts[i].x + wx, pts[i].y + wy);
+  }
+  ctx.stroke();
+
+  if (pts.length === 1) {
+    const wx = Math.sin(t * 2.2) * wiggleAmt;
+    const wy = Math.cos(t * 2.2 + 1.1) * wiggleAmt;
+    ctx.beginPath();
+    ctx.arc(pts[0].x + wx, pts[0].y + wy, stroke.size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = stroke.color;
+    ctx.fill();
+  }
+}
+
+function renderFrame(t, wiggleAmt) {
+  ctx.fillStyle = getBg();
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (const stroke of strokes) drawStroke(stroke, t, wiggleAmt);
+  if (curStroke && curStroke.points.length > 0) drawStroke(curStroke, 0, 0);
+}
+
+// ---- Animation loop ----
+function animate() {
+  rafId = requestAnimationFrame(animate);
+  animTime += 0.04;
+  renderFrame(animTime, getWiggle());
+}
+
+// ---- GIF recording ----
+async function recordGif() {
+  if (strokes.length === 0) { setStatus('Draw something first!'); return; }
+  if (isRecording) return;
+
+  isRecording = true;
+  lastGifDataUrl = null;
+  cancelAnimationFrame(rafId);
+
+  const btn    = document.getElementById('btn-record');
+  btn.disabled = true;
+
+  const FRAMES   = 36;
+  const FPS      = 12;
+  const DELAY_MS = Math.round(1000 / FPS);
+  const wiggle   = getWiggle();
+
+  const gif = new GIF({
+    workers: 2,
+    quality: 8,
+    width:   canvas.width,
+    height:  canvas.height,
+    workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+  });
+
+  const progressWrap = document.getElementById('gif-progress-wrap');
+  const progressBar  = document.getElementById('gif-progress-bar');
+  progressWrap.style.display = 'block';
+
+  for (let i = 0; i < FRAMES; i++) {
+    const t = (i / FRAMES) * Math.PI * 2 * 3;
+    renderFrame(t, wiggle);
+    gif.addFrame(canvas, { copy: true, delay: DELAY_MS });
+    const pct = Math.round((i / FRAMES) * 70);
+    progressBar.style.width = pct + '%';
+    setStatus(`Recording... ${pct}%`);
+    await new Promise(r => setTimeout(r, 8));
+  }
+
+  setStatus('Encoding...');
+  progressBar.style.width = '80%';
+
+  gif.on('progress', p => {
+    progressBar.style.width = (80 + Math.round(p * 20)) + '%';
+  });
+
+  gif.on('finished', blob => {
+    progressBar.style.width = '100%';
+    setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+
+    // Download automatically
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href    = url;
+    a.download = 'wigglypaint.gif';
+    a.click();
+
+    // Also store as data URL so Submit can use it
+    const reader = new FileReader();
+    reader.onload = ev => {
+      lastGifDataUrl = ev.target.result;
+      setStatus('GIF saved! Hit Submit to send to gallery ✨');
+    };
+    reader.readAsDataURL(blob);
+
+    btn.disabled = false;
+    isRecording  = false;
+    animate();
+  });
+
+  gif.on('error', err => {
+    console.error('gif.js error:', err);
+    setStatus('GIF encoding failed. Try again.');
+    progressWrap.style.display = 'none';
+    btn.disabled = false;
+    isRecording  = false;
+    animate();
+  });
+
+  gif.render();
+}
+
+// ---- Submit to parent gallery ----
+function submitToGallery() {
+  if (strokes.length === 0) { setStatus('Draw something first!'); return; }
+
+  const dataUrl    = lastGifDataUrl || canvas.toDataURL('image/jpeg', 0.85);
+  const isAnimated = !!lastGifDataUrl;
+
+  window.parent.postMessage({ type: 'wiggly-submit', dataUrl, isAnimated }, '*');
+  setStatus(isAnimated ? 'Animated GIF submitted! ✨' : 'Snapshot submitted! (record a GIF first for animation) ✨');
+}
+
+function setStatus(msg) {
+  document.getElementById('gif-status').textContent = msg;
+}
+
+// ---- Init ----
+resizeCanvas();
+animate();
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>

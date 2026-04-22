@@ -14,10 +14,37 @@ const SITE_CONFIG = {
 // All checks are case-insensitive
 // =============================================
 const BANNED_WORDS = [
-  "spam",
-  "hate",
+  // — Spam / self-promo
+  "spam", "follow me", "check out my", "click here", "subscribe", "onlyfans.com", "discord.gg",
+
+  // — General insults / hate
+  "trash", "garbage", "terrible", "disgusting", "horrible", "worthless", "ugly", "kill yourself", "kys",
+
+  // — Slurs (abbreviated placeholders — add full words as needed)
   "slur",
+
+  // — NSFW / harassment
+  "shut up", "idiot", "moron", "stupid", "dumb",
+
   // Add your own: "word1", "word2", ...
+];
+
+// =============================================
+// BANNED REACTION EMOJIS — emojis blocked from reactions
+// Add or remove any emoji you don't want visitors to use
+// =============================================
+const BANNED_REACTION_EMOJIS = [
+  "🗑️", "🗑",   // trash/garbage — insulting to art
+  "💩",          // poop
+  "🤮", "🤢",   // vomit/nausea — negative
+  "👎",          // thumbs down
+  "🖕",          // middle finger
+  "🤡",          // clown — often used to mock
+  "🐍",          // snake — used to call someone two-faced
+  "🤬", "😡",   // angry/rage
+  "🙄", "😒",   // eye roll / unamused — dismissive
+  // Note: 💀 ☠️ 🩸 are allowed (Spooky Month / art context)
+  // Add your own: "😤", "🤑", ...
 ];
 
 // =============================================
