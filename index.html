@@ -11,14 +11,29 @@
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>"
     />
 
-    <!-- Open Graph (social sharing previews) -->
-    <meta property="og:title" content="✦ My Gallery ✦" />
-    <meta
-      property="og:description"
-      content="An art gallery with SFW and NSFW pieces. Feel free to look around!"
-    />
+    <!-- SEO / Social sharing -->
+    <meta name="description" content="Bubbles' art gallery — SFW and NSFW art, drawings, and more. Send me a message or drawing!" />
+    <meta name="author" content="Bubbles" />
+    <link rel="canonical" href="https://bubz-artwork.vercel.app/" />
+
+    <!-- Open Graph (Discord, Facebook, etc.) -->
+    <meta property="og:title" content="✦ Bubbles' Gallery ✦" />
+    <meta property="og:description" content="SFW and NSFW art gallery by Bubbles. Look around and leave me something!" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bubz-artwork.vercel.app/" />
+    <meta property="og:image" content="https://bubz-artwork.vercel.app/preview.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Bubbles' Gallery" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="✦ Bubbles' Gallery ✦" />
+    <meta name="twitter:description" content="SFW and NSFW art gallery by Bubbles. Look around and leave me something!" />
+    <meta name="twitter:image" content="https://bubz-artwork.vercel.app/preview.jpg" />
+
     <meta name="theme-color" content="#34073d" />
+    <link rel="manifest" href="manifest.json" />
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -108,10 +123,16 @@
           >
         </div>
 
-        <!-- Tag chips -->
+        <!-- Tag chips + Sort -->
         <div class="tag-filter-section">
           <div class="tag-filter-label">Filter by tag</div>
           <div class="tag-chips" id="tag-chips"></div>
+          <div class="gallery-sort-wrap">
+            <select class="gallery-sort-select" id="gallery-sort" onchange="setSortOrder(this.value)">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </div>
         </div>
 
         <!-- Masonry grid -->
@@ -127,6 +148,11 @@
             Draw something cute or leave me a message, you choose if you want
             to sign it!
           </p>
+        </div>
+
+        <div class="send-notice">
+          <span class="send-notice-icon">📬</span>
+          <span>Everything you send is reviewed by me before it goes anywhere. Public posts need my approval to appear on the Wall, private ones go straight to my inbox only. Be kind!</span>
         </div>
 
         <div class="send-card">
@@ -223,7 +249,7 @@
                   maxlength="50"
                 />
               </div>
-              <button class="btn-send" onclick="submitDrawing()">
+              <button class="btn-send" id="draw-send-btn" onclick="submitDrawing()">
                 Send Drawing ✨
               </button>
             </div>
@@ -237,12 +263,9 @@
                   src="Wigglypaint.html"
                   class="wiggly-iframe"
                   title="WigglyPaint"
-                  allowfullscreen
                 ></iframe>
               </div>
-              <div class="wiggly-hint">
-                <span>🌀 Draw in WigglyPaint, then use its built-in <strong>Save</strong> button to download your art.</span>
-              </div>
+              <div class="wiggly-hint">✦ Draw, then hit <strong>📤 Submit</strong> inside the canvas — it uses the settings below</div>
             </div>
 
           </div>
@@ -401,6 +424,25 @@
             </div>
           </div>
 
+          <!-- Social links -->
+          <div class="about-socials">
+            <span class="about-socials-label">Find me on</span>
+            <div class="about-socials-row">
+              <a class="about-social-btn" href="https://janitorai.com/profiles/affce566-c8d8-489c-9c4a-5fcca26be9a0_profile-of-bubbles-420" target="_blank" rel="noopener">
+                <img src="https://www.google.com/s2/favicons?sz=32&domain=janitorai.com" alt="" />
+                JanitorAI
+              </a>
+              <a class="about-social-btn" href="https://character.ai/profile/Yes_its_bubbles" target="_blank" rel="noopener">
+                <img src="https://www.google.com/s2/favicons?sz=32&domain=character.ai" alt="" />
+                Character.AI
+              </a>
+              <a class="about-social-btn" href="https://fictionlab.ai/user/019ce724-2d34-70f1-80f9-d77d76455902" target="_blank" rel="noopener">
+                <img src="https://www.google.com/s2/favicons?sz=32&domain=fictionlab.ai" alt="" />
+                FictionLab
+              </a>
+            </div>
+          </div>
+
           <!-- Footer CTA -->
           <div class="about-cta">
             <p>
@@ -527,6 +569,7 @@
           <button class="admin-tab-btn" data-tab="submissions" onclick="showAdminTab('submissions')">
             📬 Inbox
           </button>
+          <button class="admin-export-btn" onclick="exportData()" title="Download all data as JSON backup">💾 Export</button>
         </div>
 
         <!-- Body -->
@@ -574,6 +617,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Back to top -->
+    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">▲</button>
 
     <!-- Mobile Draw Panel (fullscreen canvas for mobile) -->
     <div class="mobile-draw-panel hidden" id="mobile-draw-panel">
