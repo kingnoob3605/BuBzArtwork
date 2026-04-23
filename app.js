@@ -988,16 +988,11 @@ function submitDrawing() {
     clearCanvas();
 }
 
-async function submitMessage() {
+function submitMessage() {
     if (!checkSubmitCooldown()) return;
     const ta = document.getElementById('message-textarea');
     const text = ta.value.trim();
     if (!text) { showToast('Please write something first! 💬'); return; }
-
-    if (await isBanned(text)) {
-        showSassyBannedPopup();
-        return;
-    }
 
     const name = getSenderName('message');
     const vis  = getVisibility('message');
