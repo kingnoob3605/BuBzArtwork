@@ -2798,7 +2798,10 @@ input[type="range"] {
 
 /* Submission image */
 .sub-img {
-    max-width: 100%;
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    background: #111;
     border-radius: var(--radius-sm);
     border: 1px solid var(--card-border);
     margin-top: 0.5rem;
@@ -3077,8 +3080,9 @@ body.admin-logged .comment-delete:hover {
     nav::-webkit-scrollbar { display: none; }
     .nav-btn {
         font-size: 0.82rem;
-        padding: 0.42rem 0.85rem;
+        padding: 0.65rem 0.9rem;
         flex-shrink: 0;
+        min-height: 44px;
     }
 
     #app { padding: 1.25rem 0.85rem 5rem; }
@@ -3156,7 +3160,7 @@ body.admin-logged .comment-delete:hover {
 @media (max-width: 480px) {
     #header { padding: 0.55rem 0.75rem; }
     .logo { font-size: 1.15rem; }
-    .nav-btn { font-size: 0.76rem; padding: 0.38rem 0.7rem; }
+    .nav-btn { font-size: 0.76rem; padding: 0.6rem 0.7rem; min-height: 44px; }
 
     /* Age gate buttons stack */
     .age-gate-buttons { flex-direction: column; align-items: center; }
@@ -3734,10 +3738,12 @@ textarea:focus-visible {
 @media (max-width: 600px) {
     .admin-inner {
         border-radius: 18px 18px 0 0;
+        max-height: 92vh;
         animation: sheetUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .admin-body {
-        padding: 1.1rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+        padding: 0.75rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        gap: 0.65rem;
     }
     .admin-tabs {
         padding: 0.75rem 0.75rem 0;
@@ -3748,6 +3754,33 @@ textarea:focus-visible {
     }
     .admin-tabs::-webkit-scrollbar { display: none; }
     .admin-tab-btn { flex-shrink: 0; white-space: nowrap; }
+
+    /* Submission cards — compact on mobile */
+    .submission-item {
+        padding: 0.65rem 0.75rem;
+    }
+    .submission-meta {
+        gap: 0.35rem;
+        margin-bottom: 0.4rem;
+    }
+    .sub-img {
+        max-height: 220px;
+    }
+    .sub-actions {
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+    }
+    .sub-btn {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem 0.5rem;
+        font-size: 0.76rem;
+    }
+    .submissions-section-label {
+        font-size: 0.8rem;
+        padding: 0.3rem 0;
+    }
 }
 
 /* ── 10. Age-gate fits small screens without scrolling ─── */
@@ -3836,7 +3869,52 @@ body.modal-open { overflow: hidden; touch-action: none; }
     .visibility-label, .identity-label { font-size: 0.68rem; }
 }
 
-/* ── 19. (FAB removed — fullscreen button now lives in canvas-controls) ── */
+/* ── 19. 390px — iPhone 14 / small flagship phones ────────── */
+@media (max-width: 390px) {
+    /* Header */
+    #header { padding: 0.5rem 0.65rem; }
+    .logo { font-size: 1.05rem; }
+    .nav-btn { font-size: 0.72rem; padding: 0.55rem 0.6rem; }
+
+    /* App padding */
+    #app { padding: 1rem 0.6rem 4.5rem; }
+
+    /* Page headings */
+    .send-page-header h2 { font-size: 1.8rem; }
+    .about-name { font-size: 1.75rem !important; }
+
+    /* Gallery grid tighter gap */
+    #gallery-grid { column-gap: 0.4rem; }
+
+    /* Wall grid tighter gap */
+    #wall-grid { column-gap: 0.4rem; padding: 0.7rem 0.4rem 1rem; }
+    .wall-card-text { font-size: 0.85rem; padding: 0.6rem 0.6rem 0.4rem; }
+    .wall-card-footer { font-size: 0.65rem; padding: 0.3rem 0.4rem; }
+    .wall-reactions-row { padding: 0.15rem 0.4rem 0.35rem; gap: 0.15rem; }
+
+    /* Canvas controls tighter */
+    .canvas-controls { gap: 0.25rem; padding: 0.35rem 0.4rem; }
+
+    /* Identity input smaller */
+    .identity-input { width: 120px; font-size: 0.82rem; }
+    .identity-toggle { gap: 0.3rem; }
+    .identity-btn { font-size: 0.72rem; padding: 0.35rem 0.6rem; }
+
+    /* Send button */
+    .btn-send { padding: 0.65rem 1.2rem; font-size: 0.88rem; }
+
+    /* Lightbox info */
+    .lightbox-info { padding: 0.85rem; }
+    #lb-title { font-size: 1.1rem; }
+
+    /* Admin inner */
+    .admin-body { padding: 0.75rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px)); }
+    .admin-tab-btn { font-size: 0.72rem; padding: 0.4rem 0.6rem; }
+
+    /* Age gate */
+    .age-gate-box { padding: 1.5rem 1.1rem 1.4rem; }
+    .age-gate-box h1 { font-size: 1.6rem; }
+}
 
 /* ── 20. Print: simple, no cork/tape, just content ─────── */
 @media print {
