@@ -1420,12 +1420,49 @@ let mobilePainting = false;
 let mobileLastX = 0;
 let mobileLastY = 0;
 
+let _drawMode = 'simple';
+
 function setDrawMode(mode) {
+    _drawMode = mode;
     document.getElementById('draw-mode-simple').classList.toggle('hidden', mode !== 'simple');
     document.getElementById('draw-mode-wiggly').classList.toggle('hidden', mode !== 'wiggly');
     document.getElementById('dmt-simple').classList.toggle('active', mode === 'simple');
     document.getElementById('dmt-wiggly').classList.toggle('active', mode === 'wiggly');
 }
+
+function sendCurrentDrawing() {
+    if (_drawMode === 'wiggly') {
+        const iframe = document.getElementById('wiggly-iframe');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'trigger-submit' }, '*');
+        }
+    } else {
+        submitDrawing();
+    }
+}
+
+window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'wiggly-submit') return;
+    const dataUrl = e.data.dataUrl;
+    if (!dataUrl) return;
+    if (!checkSubmitCooldown()) return;
+    const name = getSenderName('draw');
+    const vis  = getVisibility('draw');
+    const entry = {
+        id: String(Date.now() + Math.floor(Math.random() * 1000)),
+        type: 'drawing',
+        data: dataUrl,
+        sender: name,
+        timestamp: new Date().toISOString(),
+        requestedVis: vis
+    };
+    savePending(entry);
+    if (vis === 'public') {
+        showToast('WigglyPaint submitted! Waiting for approval 🌐✨');
+    } else {
+        showToast('WigglyPaint sent privately! 🔒✨ Thank you!');
+    }
+});
 
 function openMobileDrawPanel() {
     const panel = document.getElementById('mobile-draw-panel');

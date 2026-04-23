@@ -219,6 +219,21 @@
               </button>
             </div>
 
+            </div> <!-- /#draw-mode-simple -->
+
+            <!-- WigglyPaint panel -->
+            <div id="draw-mode-wiggly" class="hidden">
+              <div class="wiggly-wrap">
+                <iframe
+                  id="wiggly-iframe"
+                  src="Wigglypaint.html"
+                  class="wiggly-iframe"
+                  title="WigglyPaint"
+                ></iframe>
+              </div>
+            </div>
+
+            <!-- Shared controls: visibility + identity (used by both Simple Draw and WigglyPaint) -->
             <div class="visibility-row" id="draw-visibility-row">
               <span class="visibility-label">Post as</span>
               <div class="visibility-toggle">
@@ -255,23 +270,9 @@
                   maxlength="50"
                 />
               </div>
-              <button class="btn-send" id="draw-send-btn" onclick="submitDrawing()">
+              <button class="btn-send" id="draw-send-btn" onclick="sendCurrentDrawing()">
                 Send Drawing ✨
               </button>
-            </div>
-            </div> <!-- /#draw-mode-simple -->
-
-            <!-- WigglyPaint panel -->
-            <div id="draw-mode-wiggly" class="hidden">
-              <div class="wiggly-wrap">
-                <iframe
-                  id="wiggly-iframe"
-                  src="Wigglypaint.html"
-                  class="wiggly-iframe"
-                  title="WigglyPaint"
-                ></iframe>
-              </div>
-              <div class="wiggly-hint">✦ Draw, then hit <strong>📤 Submit</strong> inside the canvas — it uses the settings below</div>
             </div>
 
           </div>
