@@ -214,6 +214,15 @@ body {
     font-size: 0.98rem;
     font-family: var(--font-body);
 }
+.age-gate-disclaimer {
+    font-size: 0.75rem !important;
+    opacity: 0.55 !important;
+    margin-bottom: 1.2rem !important;
+    line-height: 1.5 !important;
+    border-top: 1px dashed rgba(58,42,32,0.2);
+    padding-top: 0.8rem;
+    font-style: italic;
+}
 .age-gate-box p strong {
     color: #8a2a1a;
     font-weight: 700;

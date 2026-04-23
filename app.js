@@ -182,7 +182,7 @@ function setTagFilter(tag, el) {
 
 function getFilteredArtworks() {
     const hidden = getHiddenArtIds();
-    return allArtworks.filter(art => !hidden.includes(art.id)).filter(art => {
+    const filtered = allArtworks.filter(art => !hidden.includes(art.id)).filter(art => {
         const passFilter =
             currentFilter === 'all' ||
             (currentFilter === 'sfw'  && !art.nsfw) ||
@@ -190,6 +190,13 @@ function getFilteredArtworks() {
         const passTag = !activeTag || (art.tags && art.tags.includes(activeTag));
         return passFilter && passTag;
     });
+    if (currentSort === 'oldest') {
+        return filtered.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    }
+    if (currentSort === 'az') {
+        return filtered.slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    }
+    return filtered; // 'newest' = default allArtworks order (prepended newest first)
 }
 
 function renderTagChips() {
@@ -943,7 +950,23 @@ function safeCanvasDataUrl(canvas) {
     return dataUrl;
 }
 
+let _lastSubmitTime = 0;
+const SUBMIT_COOLDOWN_MS = 30000; // 30 seconds between submissions
+
+function checkSubmitCooldown() {
+    const now = Date.now();
+    const diff = now - _lastSubmitTime;
+    if (_lastSubmitTime && diff < SUBMIT_COOLDOWN_MS) {
+        const secs = Math.ceil((SUBMIT_COOLDOWN_MS - diff) / 1000);
+        showToast(`Please wait ${secs}s before submitting again! ⏳`);
+        return false;
+    }
+    _lastSubmitTime = now;
+    return true;
+}
+
 function submitDrawing() {
+    if (!checkSubmitCooldown()) return;
     const canvas = document.getElementById('draw-canvas');
     if (isCanvasBlank(canvas)) { showToast('Draw something first! 🖌️'); return; }
 
@@ -966,6 +989,7 @@ function submitDrawing() {
 }
 
 async function submitMessage() {
+    if (!checkSubmitCooldown()) return;
     const ta = document.getElementById('message-textarea');
     const text = ta.value.trim();
     if (!text) { showToast('Please write something first! 💬'); return; }
@@ -1039,6 +1063,7 @@ function onPasswordKeydown(e) {
 function openAdmin() {
     showAdminTab('pending');   // open to pending first so they see what needs review
     updatePendingBadge();
+    checkStorageUsage();
     const panel = document.getElementById('admin-panel');
     panel.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -1554,3 +1579,88 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ═══════════════════════════════════════════════
+// GALLERY SORT
+// ═══════════════════════════════════════════════
+let currentSort = 'newest';
+function setSortOrder(val) { currentSort = val; renderGallery(); }
+
+// ═══════════════════════════════════════════════
+// BACK TO TOP
+// ═══════════════════════════════════════════════
+(function() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
+    window.addEventListener('scroll', () => {
+        btn.classList.toggle('visible', window.scrollY > 400);
+    }, { passive: true });
+})();
+
+// ═══════════════════════════════════════════════
+// LIGHTBOX: KEYBOARD + SWIPE
+// ═══════════════════════════════════════════════
+(function() {
+    let tx = 0;
+    document.addEventListener('keydown', e => {
+        const lb = document.getElementById('lightbox');
+        if (!lb || !lb.classList.contains('open')) return;
+        if (e.key === 'ArrowRight') navigateLightbox(1);
+        if (e.key === 'ArrowLeft')  navigateLightbox(-1);
+    });
+    document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+        const lb = document.getElementById('lightbox');
+        if (!lb || !lb.classList.contains('open')) return;
+        const dx = e.changedTouches[0].clientX - tx;
+        if (Math.abs(dx) > 50) navigateLightbox(dx < 0 ? 1 : -1);
+    }, { passive: true });
+})();
+
+function navigateLightbox(dir) {
+    if (!currentArtwork) return;
+    const visible = getFilteredArtworks();
+    const idx = visible.findIndex(a => a.id === currentArtwork.id);
+    if (idx === -1) return;
+    const next = visible[idx + dir];
+    if (next) openLightbox(next.id);
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN: EXPORT BACKUP
+// ═══════════════════════════════════════════════
+function exportData() {
+    const keys = ['public-posts','pending-submissions','anonymous-submissions','extra-artworks','art-overrides','hidden-art-ids'];
+    const backup = { exportedAt: new Date().toISOString(), data: {} };
+    keys.forEach(k => { const v = localStorage.getItem(k); if (v) backup.data[k] = JSON.parse(v); });
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k.startsWith('reactions-') || k.startsWith('comments-') || k.startsWith('wall-reactions-'))
+            backup.data[k] = JSON.parse(localStorage.getItem(k));
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
+    a.download = `bubbles-gallery-backup-${Date.now()}.json`;
+    a.click();
+    showToast('Backup downloaded! 💾');
+    checkStorageUsage();
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN: STORAGE WARNING
+// ═══════════════════════════════════════════════
+function checkStorageUsage() {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++)
+        total += (localStorage.getItem(localStorage.key(i)) || '').length;
+    const pct = Math.round((total / 1024 / 5120) * 100);
+    const existing = document.querySelector('.storage-warning');
+    if (existing) existing.remove();
+    if (pct >= 60) {
+        const el = document.createElement('div');
+        el.className = 'storage-warning';
+        el.innerHTML = `⚠️ Storage ${pct}% full (${Math.round(total/1024)}KB / 5MB). Export a backup and clear old wall posts.`;
+        const body = document.querySelector('.admin-body');
+        if (body) body.prepend(el);
+    }
+}
