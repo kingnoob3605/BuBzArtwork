@@ -532,6 +532,32 @@ function showCommentWarning(msg) {
     el._timer = setTimeout(() => el.classList.remove('visible'), 3500);
 }
 
+function showXPopup() {
+    const existing = document.getElementById('sassy-popup');
+    if (existing) existing.remove();
+
+    const el = document.createElement('div');
+    el.id = 'sassy-popup';
+    el.className = 'sassy-popup';
+    el.innerHTML = `
+        <div class="sassy-popup-inner">
+            <span class="sassy-popup-emoji">🐦</span>
+            <div class="sassy-popup-text">
+                <strong>Heads up!</strong>
+                <span>Sorry, this app is only for gooning but I rarely post there.</span>
+            </div>
+            <button class="sassy-popup-close" onclick="this.closest('.sassy-popup').remove()">✕</button>
+        </div>
+    `;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    clearTimeout(el._t);
+    el._t = setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 400);
+    }, 4000);
+}
+
 function showSassyBannedPopup() {
     // Remove any existing one first
     const existing = document.getElementById('sassy-popup');
