@@ -1647,11 +1647,12 @@ input[type="range"] {
     width: 100%;
     min-height: 220px;
     background: var(--paper);
-    color: var(--paper-ink);
+    color: #1e1008;
     border: 1px solid var(--card-border);
     border-radius: var(--radius);
     font-family: var(--font-hand);
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+    font-weight: 500;
     padding: 1.2rem 1.3rem;
     resize: vertical;
     outline: none;
