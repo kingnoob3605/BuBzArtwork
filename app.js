@@ -129,7 +129,8 @@ function spawnFloatingEmojis() {
     }
 }
 
-function confirmAge(sessionOnly) {
+function confirmAge() {
+    const sessionOnly = document.getElementById('session-only-check')?.checked;
     if (sessionOnly) {
         sessionStorage.setItem('age-session', '1');
     } else {
