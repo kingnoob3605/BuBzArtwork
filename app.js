@@ -751,16 +751,12 @@ function renderWall() {
             ? `<span class="wall-sender">✏️ ${escHtml(post.sender)}</span>`
             : `<span class="wall-sender anon">🙈 Anonymous</span>`;
         const date = formatCommentDate(post.timestamp);
-        const deleteBtn = adminLoggedIn
-            ? `<button class="comment-delete" onclick="deletePublicPost('${post.id}')" title="Delete">🗑</button>`
-            : '';
         const reactionsHtml = buildWallReactionsHtml(post.id);
 
         const footer = `<div class="wall-card-footer">
                     <span class="wall-type-badge">${post.type === 'drawing' ? '🎨 Drawing' : '💬 Message'}</span>
                     ${sender}
                     <span class="wall-date">${escHtml(date)}</span>
-                    ${deleteBtn}
                 </div>
                 <div class="wall-reactions-row" id="wall-reactions-${post.id}">
                     ${reactionsHtml}

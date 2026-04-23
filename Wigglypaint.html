@@ -175,7 +175,7 @@
 
 <div id="actions">
   <div class="action-left">
-    <button class="wp-btn gif-btn" id="btn-gif" onclick="recordGif()">🎬 Save GIF</button>
+    <button class="wp-btn gif-btn" id="btn-gif" onclick="previewGif()">🌀 Preview</button>
     <span id="status"></span>
   </div>
   <div class="action-right">
@@ -363,18 +363,16 @@ async function getWorkerUrl() {
     return _gifWorkerUrl;
 }
 
-// ---- GIF recording ----
-async function recordGif() {
-    if (strokes.length === 0) { setStatus('Draw something first!'); return; }
+// ---- GIF encoding (shared by preview button and auto-submit) ----
+async function encodeGif(onDone) {
     if (isRecording) return;
-
     isRecording = true;
     lastGifUrl  = null;
     clearInterval(boilTimer);
 
     const btn = document.getElementById('btn-gif');
     btn.disabled = true;
-    setStatus('Loading encoder...');
+    setStatus('Encoding animation...');
 
     const workerUrl = await getWorkerUrl();
     const DELAY = 110;
@@ -390,7 +388,6 @@ async function recordGif() {
     const pb = document.getElementById('progress-bar');
     pw.style.display = 'block';
 
-    // Add alternating A/B frames — 8 pairs = 16 frames total, clean loop
     const PAIRS = 8;
     for (let i = 0; i < PAIRS; i++) {
         redraw(false); gif.addFrame(canvas, { copy: true, delay: DELAY });
@@ -399,35 +396,26 @@ async function recordGif() {
         await new Promise(r => setTimeout(r, 4));
     }
 
-    setStatus('Encoding...');
     pb.style.width = '70%';
-
     gif.on('progress', p => { pb.style.width = (70 + Math.round(p * 28)) + '%'; });
 
     gif.on('finished', blob => {
         pb.style.width = '100%';
         setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 500);
 
-        // Auto-download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'wigglypaint.gif'; a.click();
-
-        // Store data URL so Submit can send it
         const reader = new FileReader();
         reader.onload = ev => {
             lastGifUrl = ev.target.result;
-            setStatus('GIF saved! Hit Submit to send ✨');
+            btn.disabled = false;
+            isRecording  = false;
+            startBoilTimer();
+            if (onDone) onDone(lastGifUrl);
         };
         reader.readAsDataURL(blob);
-
-        btn.disabled = false;
-        isRecording  = false;
-        startBoilTimer();
     });
 
     gif.on('error', () => {
-        setStatus('GIF failed, try again.');
+        setStatus('Encoding failed, try again.');
         pw.style.display = 'none';
         btn.disabled = false;
         isRecording  = false;
@@ -437,14 +425,27 @@ async function recordGif() {
     gif.render();
 }
 
-// ---- Submit to parent gallery ----
+// ---- Preview button: encode and show ready status (no download) ----
+function previewGif() {
+    if (strokes.length === 0) { setStatus('Draw something first!'); return; }
+    encodeGif(() => setStatus('Ready! Hit Submit to send ✨'));
+}
+
+// ---- Submit: auto-encode if needed, then send ----
 function submitToGallery() {
     if (strokes.length === 0) { setStatus('Draw something first!'); return; }
-    // Use GIF if recorded, else static JPEG snapshot
-    redraw(false); // draw clean frame for snapshot
-    const dataUrl = lastGifUrl || canvas.toDataURL('image/jpeg', 0.88);
-    window.parent.postMessage({ type: 'wiggly-submit', dataUrl }, '*');
-    setStatus(lastGifUrl ? 'Animated GIF submitted! ✨' : 'Snapshot submitted! (save a GIF first for animation) ✨');
+    if (lastGifUrl) {
+        doSubmit();
+    } else {
+        setStatus('Encoding animation for submission...');
+        encodeGif(() => doSubmit());
+    }
+}
+
+function doSubmit() {
+    redraw(false);
+    window.parent.postMessage({ type: 'wiggly-submit', dataUrl: lastGifUrl }, '*');
+    setStatus('Submitted! ✨');
 }
 
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
