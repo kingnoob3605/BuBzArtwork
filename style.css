@@ -1237,7 +1237,7 @@ nav {
 }
 .wall-page-header p,
 .send-page-header p {
-    color: var(--text);
+    color: #ffffff;
     font-family: var(--font-hand);
     font-size: 1.25rem;
     line-height: 1.4;
@@ -4263,7 +4263,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
     padding: 12px 16px;
     margin-bottom: 16px;
     font-size: 1rem;
-    color: var(--text);
+    color: #ffffff;
     line-height: 1.5;
     font-family: var(--font-hand);
 }
