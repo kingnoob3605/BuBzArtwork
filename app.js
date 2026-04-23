@@ -518,17 +518,9 @@ function isBannedLocal(text) {
     });
 }
 
-async function isBanned(text) {
+function isBanned(text) {
     if (isBannedLocal(text)) return true;
-    try {
-        const res = await fetch(
-            `https://www.purgomalum.com/service/containsprofanity?text=${encodeURIComponent(text)}`
-        );
-        const result = await res.text();
-        return result.trim() === 'true';
-    } catch {
-        return false;
-    }
+    return BANNED_REACTION_EMOJIS.some(e => text.includes(e));
 }
 
 function showCommentWarning(msg) {
@@ -592,13 +584,13 @@ function showSassyBannedPopup() {
     }, 4000);
 }
 
-async function postComment() {
+function postComment() {
     if (!currentArtwork) return;
     const input = document.getElementById('comment-input');
     const text = input.value.trim();
     if (!text) return;
 
-    if (await isBanned(text)) {
+    if (isBanned(text)) {
         showSassyBannedPopup();
         input.value = '';
         return;
