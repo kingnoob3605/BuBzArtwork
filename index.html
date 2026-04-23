@@ -136,6 +136,7 @@
             <select class="gallery-sort-select" id="gallery-sort" onchange="setSortOrder(this.value)">
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
+              <option value="az">A–Z</option>
             </select>
           </div>
         </div>
@@ -566,7 +567,7 @@
 
         <!-- Tabs -->
         <div class="admin-tabs">
-          <button class="admin-tab-btn active" data-tab="add-art" onclick="showAdminTab('add-art')">
+          <button class="admin-tab-btn" data-tab="add-art" onclick="showAdminTab('add-art')">
             ➕ Add Art
           </button>
           <button class="admin-tab-btn" data-tab="my-art" onclick="showAdminTab('my-art')">

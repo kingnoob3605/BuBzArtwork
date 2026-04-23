@@ -41,7 +41,7 @@ function formatCommentDate(iso) {
     const d = new Date(iso);
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const h = d.getHours(), m = d.getMinutes();
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${h}:${String(m).padStart(2,'0')}`;
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
 // ─── Utility: show toast ──────────────────────
@@ -670,6 +670,19 @@ function approveToWall(id) {
     updatePendingBadge();
     showToast('✅ Approved! Now on the Wall!');
 }
+function approvePrivateToWall(idx) {
+    const subs = getSubmissions();
+    const item = subs[subs.length - 1 - idx]; // list is reversed in render
+    if (!item) return;
+    subs.splice(subs.length - 1 - idx, 1);
+    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
+    const posts = getPublicPosts();
+    posts.push({ ...item, requestedVis: 'public' });
+    savePublicPosts(posts);
+    renderSubmissions();
+    renderWall();
+    showToast('✅ Moved to Wall!');
+}
 function approvePrivate(id) {
     const pending = getPending();
     const item = pending.find(p => p.id === id);
@@ -719,13 +732,7 @@ function addWallReaction(postId, emoji) {
 function renderWallReactions(postId) {
     const container = document.getElementById('wall-reactions-' + postId);
     if (!container) return;
-    const data = getWallReactions(postId);
-    const used = Object.keys(data).filter(e => data[e] > 0);
-    container.innerHTML = used.map(e =>
-        `<button class="reaction-btn has-count wall-reaction-btn" onclick="addWallReaction('${postId}','${e}')" title="React with ${e}">
-            ${e}<span class="reaction-count">${data[e]}</span>
-        </button>`
-    ).join('') + `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`;
+    container.innerHTML = buildWallReactionsHtml(postId);
 }
 
 function renderWall() {
@@ -777,8 +784,8 @@ function buildWallReactionsHtml(postId) {
     const data = getWallReactions(postId);
     const used = Object.keys(data).filter(e => data[e] > 0);
     return used.map(e =>
-        `<button class="reaction-btn has-count wall-reaction-btn" onclick="addWallReaction('${postId}','${e}')" title="React with ${e}">
-            ${e}<span class="reaction-count">${data[e]}</span>
+        `<button class="reaction-btn has-count wall-reaction-btn" onclick="addWallReaction('${postId}','${escHtml(e)}')" title="React with ${escHtml(e)}">
+            ${escHtml(e)}<span class="reaction-count">${data[e]}</span>
         </button>`
     ).join('') + `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`;
 }
@@ -1396,7 +1403,7 @@ function renderSubmissions() {
                 </div>
                 ${_subContent(s)}
                 <div class="sub-actions">
-                    <button class="sub-btn sub-btn-approve" onclick="approveToWall('${s.id || i}')">✅ Move → Wall</button>
+                    <button class="sub-btn sub-btn-approve" onclick="approvePrivateToWall(${i})">✅ Move → Wall</button>
                     <button class="sub-btn sub-btn-delete" onclick="deletePrivateSub(${privateSubs.length - 1 - i})">🗑 Delete</button>
                 </div>
             </div>`).join('');
@@ -1522,20 +1529,17 @@ function submitMobileDrawing() {
     const nameEl = document.getElementById('sender-name');
     const name = nameEl ? nameEl.value.trim() : '';
     const submission = {
-        id: Date.now(),
+        id: String(Date.now()),
         type: 'drawing',
-        image: dataUrl,
-        name: name || 'Anonymous',
-        message: '',
-        isPublic: false,
+        data: dataUrl,
+        sender: name || null,
+        requestedVis: 'private',
         timestamp: new Date().toISOString()
     };
-    const subs = JSON.parse(localStorage.getItem('artSubmissions') || '[]');
-    subs.push(submission);
-    localStorage.setItem('artSubmissions', JSON.stringify(subs));
+    savePending(submission);
     clearMobileCanvas();
     closeMobileDrawPanel();
-    alert('Drawing sent! ✨');
+    showToast('Drawing sent! Waiting for review ✨');
 }
 
 // ═══════════════════════════════════════════════
