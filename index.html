@@ -70,18 +70,17 @@
           and choose to misrepresent your age to access this content, you do so
           against the explicit wishes of this site and bear full responsibility.
         </p>
-        <label class="age-gate-session-check">
-          <input type="checkbox" id="session-only-check" />
-          Don't remember me on this device
-        </label>
         <div class="age-gate-buttons">
-          <button class="btn-enter" onclick="confirmAge()">
+          <button class="btn-enter" onclick="confirmAge(false)">
             I'm 18+, Enter ✨
           </button>
           <button class="btn-leave" onclick="leaveGate()">
             I'm under 18, Leave
           </button>
         </div>
+        <button class="btn-session-only" onclick="confirmAge(true)">
+          Just this visit (don't remember me)
+        </button>
       </div>
     </div>
 
