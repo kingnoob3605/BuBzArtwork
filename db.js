@@ -18,6 +18,8 @@ let _inbox       = []; // [{id, type, data, sender, timestamp}]
 let _extraArts   = []; // [{id, title, description, image, tags, nsfw, date}]
 let _overrides   = {}; // artId (str) → {title, description, image, tags, nsfw}
 let _hiddenIds   = []; // [artId (str)]
+let _replies     = {}; // postId (str) → [{id, text, sender, timestamp}]
+let _pollVotes   = {}; // postId (str) → {optionIdx(str): count}
 
 // ── Bootstrap — load everything from Supabase ─────────────────
 async function dbInit() {
@@ -32,6 +34,8 @@ async function dbInit() {
             { data: extraArts  },
             { data: overrides  },
             { data: hiddenArts },
+            { data: repliesData    },
+            { data: pollVotesData  },
         ] = await Promise.all([
             _db.from('comments').select('*').order('created_at', { ascending: true }),
             _db.from('reactions').select('*'),
@@ -42,6 +46,8 @@ async function dbInit() {
             _db.from('extra_artworks').select('*').order('created_at', { ascending: false }),
             _db.from('art_overrides').select('*'),
             _db.from('hidden_arts').select('*'),
+            _db.from('wall_replies').select('*').order('created_at', { ascending: true }),
+            _db.from('poll_votes').select('post_id, option_idx'),
         ]);
 
         // Comments: group by art_id
@@ -106,6 +112,23 @@ async function dbInit() {
         // Hidden art IDs
         _hiddenIds = (hiddenArts || []).map(h => String(h.art_id));
 
+        // Replies: group by post_id
+        _replies = {};
+        (repliesData || []).forEach(r => {
+            const key = String(r.post_id);
+            if (!_replies[key]) _replies[key] = [];
+            _replies[key].push({ id: r.id, text: r.text, sender: r.sender, timestamp: r.timestamp });
+        });
+
+        // Poll votes: count per post_id + option_idx
+        _pollVotes = {};
+        (pollVotesData || []).forEach(v => {
+            const key = String(v.post_id);
+            if (!_pollVotes[key]) _pollVotes[key] = {};
+            const idx = String(v.option_idx);
+            _pollVotes[key][idx] = (_pollVotes[key][idx] || 0) + 1;
+        });
+
     } catch (err) {
         console.error('[db] dbInit failed:', err);
         // Show visible error so the user knows something is wrong
@@ -126,6 +149,8 @@ function getPending()          { return _pending; }
 function getSubmissions()      { return _inbox; }
 function getArtOverrides()     { return _overrides; }
 function getHiddenArtIds()     { return _hiddenIds; }
+function getReplies(postId)    { return _replies[String(postId)]   || []; }
+function getPollVotes(postId)  { return _pollVotes[String(postId)] || {}; }
 
 // ── Internal: log DB errors without crashing ──────────────────
 function _dbErr(op, error) {
@@ -315,4 +340,62 @@ async function dbUnhideArt(artId) {
     _hiddenIds = _hiddenIds.filter(id => id !== key);
     const { error } = await _db.from('hidden_arts').delete().eq('art_id', key);
     _dbErr('unhideArt', error);
+}
+
+// ──────────────────────────────────────────────────────────────
+// WALL REPLIES
+// ──────────────────────────────────────────────────────────────
+
+async function dbAddReply(postId, text, sender) {
+    const id        = String(Date.now() + Math.floor(Math.random() * 1000));
+    const timestamp = new Date().toISOString();
+    const key       = String(postId);
+    if (!_replies[key]) _replies[key] = [];
+    _replies[key].push({ id, text, sender, timestamp });
+    const { error } = await _db.from('wall_replies').insert({ id, post_id: key, text, sender, timestamp });
+    _dbErr('addReply', error);
+    return { id, text, sender, timestamp };
+}
+
+async function dbDeleteReply(replyId) {
+    for (const key in _replies) {
+        _replies[key] = _replies[key].filter(r => r.id !== replyId);
+    }
+    const { error } = await _db.from('wall_replies').delete().eq('id', replyId);
+    _dbErr('deleteReply', error);
+}
+
+// ──────────────────────────────────────────────────────────────
+// POLL VOTES
+// ──────────────────────────────────────────────────────────────
+
+function getVoterToken() {
+    let t = localStorage.getItem('voter-token');
+    if (!t) {
+        t = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('voter-token', t);
+    }
+    return t;
+}
+
+function hasUserVoted(postId) {
+    return localStorage.getItem('voted-' + postId) !== null;
+}
+
+function getUserVoteIdx(postId) {
+    const v = localStorage.getItem('voted-' + postId);
+    return v !== null ? parseInt(v) : -1;
+}
+
+async function dbVotePoll(postId, optionIdx) {
+    if (hasUserVoted(postId)) return false; // already voted
+    const key     = String(postId);
+    const idx     = String(optionIdx);
+    const token   = getVoterToken();
+    if (!_pollVotes[key]) _pollVotes[key] = {};
+    _pollVotes[key][idx] = (_pollVotes[key][idx] || 0) + 1;
+    localStorage.setItem('voted-' + postId, String(optionIdx));
+    const { error } = await _db.from('poll_votes').insert({ post_id: key, option_idx: optionIdx, voter_token: token });
+    _dbErr('votePoll', error);
+    return true;
 }
