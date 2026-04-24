@@ -193,10 +193,7 @@ async function dbIncrementReaction(artId, emoji) {
     const key = String(artId);
     if (!_reactions[key]) _reactions[key] = {};
     _reactions[key][emoji] = (_reactions[key][emoji] || 0) + 1;
-    const count = _reactions[key][emoji];
-
-    const { error } = await _db.from('reactions')
-        .upsert({ art_id: key, emoji, count }, { onConflict: 'art_id,emoji' });
+    const { error } = await _db.rpc('increment_reaction', { p_art_id: key, p_emoji: emoji });
     _dbErr('incrementReaction', error);
 }
 
@@ -208,10 +205,7 @@ async function dbIncrementWallReaction(postId, emoji) {
     const key = String(postId);
     if (!_wallRxns[key]) _wallRxns[key] = {};
     _wallRxns[key][emoji] = (_wallRxns[key][emoji] || 0) + 1;
-    const count = _wallRxns[key][emoji];
-
-    const { error } = await _db.from('wall_reactions')
-        .upsert({ post_id: key, emoji, count }, { onConflict: 'post_id,emoji' });
+    const { error } = await _db.rpc('increment_wall_reaction', { p_post_id: key, p_emoji: emoji });
     _dbErr('incrementWallReaction', error);
 }
 
@@ -249,7 +243,11 @@ async function savePending(entry) {
         sender: entry.sender, timestamp: entry.timestamp,
         requested_vis: entry.requestedVis || 'private',
     });
-    _dbErr('savePending', error);
+    if (error) {
+        _pending = _pending.filter(p => p.id !== entry.id);
+        _dbErr('savePending', error);
+        throw error;
+    }
 }
 
 async function removePending(id) {

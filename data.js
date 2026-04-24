@@ -6,7 +6,6 @@ const SITE_CONFIG = {
   logoText: "✦ Gallery ✦", // Header logo
   aboutText:
     "Hi! Welcome to my art gallery. I post my art here — both SFW and NSFW. Feel free to look around and send me something!",
-  adminPassword: "123", // Change this!
 };
 
 // =============================================

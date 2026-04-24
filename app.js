@@ -85,6 +85,16 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
+// ─── Loader ───────────────────────────────────
+function showLoader() {
+  const el = document.getElementById('page-loader');
+  if (el) el.classList.remove('hidden');
+}
+function hideLoader() {
+  const el = document.getElementById('page-loader');
+  if (el) el.classList.add('hidden');
+}
+
 // ─── Init ─────────────────────────────────────
 async function init() {
   document.title = SITE_CONFIG.title;
@@ -93,7 +103,9 @@ async function init() {
   if (aboutTextEl) aboutTextEl.textContent = SITE_CONFIG.aboutText;
 
   // Load all data from Supabase into in-memory cache
+  showLoader();
   await dbInit();
+  hideLoader();
 
   // Merge extra artworks from Supabase cache (dedup by id, prepend)
   const baseIds = new Set(artworks.map((a) => String(a.id)));
@@ -133,6 +145,7 @@ async function init() {
 
   // Canvas setup
   setupCanvas();
+  initDropZone();
 
   // Logo click counter for admin
   document.getElementById("logo-text").addEventListener("click", onLogoClick);
@@ -183,13 +196,14 @@ function confirmAge(sessionOnly) {
     localStorage.setItem("age-confirmed-ts", Date.now().toString());
   }
   const gate = document.getElementById("age-gate");
-  gsap.to(gate, {
-    opacity: 0,
-    scale: 0.95,
-    duration: 0.5,
-    ease: "power2.in",
-    onComplete: () => gate.classList.add("hidden"),
-  });
+  if (typeof gsap !== 'undefined') {
+    gsap.to(gate, {
+      opacity: 0, scale: 0.95, duration: 0.5, ease: "power2.in",
+      onComplete: () => gate.classList.add("hidden"),
+    });
+  } else {
+    gate.classList.add("hidden");
+  }
 }
 
 function leaveGate() {
@@ -1412,59 +1426,54 @@ function checkCommentCooldown() {
 async function submitDrawing() {
   if (!checkSubmitCooldown()) return;
   const canvas = document.getElementById("draw-canvas");
-  if (isCanvasBlank(canvas)) {
-    showToast("Draw something first! 🖌️");
-    return;
-  }
+  if (isCanvasBlank(canvas)) { showToast("Draw something first! 🖌️"); return; }
 
-  const dataUrl = safeCanvasDataUrl(canvas);
-  const name = getSenderName("draw");
-  const vis = getVisibility("draw");
+  const btn = document.getElementById('draw-send-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
   const entry = {
     id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    type: "drawing",
-    data: dataUrl,
-    sender: name,
-    timestamp: new Date().toISOString(),
-    requestedVis: vis,
+    type: "drawing", data: safeCanvasDataUrl(canvas),
+    sender: getSenderName("draw"), timestamp: new Date().toISOString(),
+    requestedVis: getVisibility("draw"),
   };
-
-  await savePending(entry);
-  if (vis === "public") {
-    showToast("Drawing submitted! Waiting for approval 🌐✨");
-  } else {
-    showToast("Drawing sent privately! 🔒✨ Thank you!");
+  try {
+    await savePending(entry);
+    showToast(entry.requestedVis === "public" ? "Drawing submitted! Waiting for approval 🌐✨" : "Drawing sent privately! 🔒✨ Thank you!");
+    clearCanvas();
+  } catch {
+    localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
+    showToast("Failed to send — check your connection and try again 😢");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Drawing ✨'; }
   }
-  clearCanvas();
 }
 
 async function submitMessage() {
   if (!checkSubmitCooldown()) return;
   const ta = document.getElementById("message-textarea");
   const text = ta.value.trim();
-  if (!text) {
-    showToast("Please write something first! 💬");
-    return;
-  }
+  if (!text) { showToast("Please write something first! 💬"); return; }
 
-  const name = getSenderName("message");
-  const vis = getVisibility("message");
+  const btn = document.querySelector('#send-tab-message .btn-send');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
   const entry = {
     id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    type: "message",
-    data: text,
-    sender: name,
-    timestamp: new Date().toISOString(),
-    requestedVis: vis,
+    type: "message", data: text,
+    sender: getSenderName("message"), timestamp: new Date().toISOString(),
+    requestedVis: getVisibility("message"),
   };
-
-  await savePending(entry);
-  if (vis === "public") {
-    showToast("Message submitted! Waiting for approval 🌐✨");
-  } else {
-    showToast("Message sent privately! 🔒✨ Thank you!");
+  try {
+    await savePending(entry);
+    showToast(entry.requestedVis === "public" ? "Message submitted! Waiting for approval 🌐✨" : "Message sent privately! 🔒✨ Thank you!");
+    ta.value = "";
+  } catch {
+    localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
+    showToast("Failed to send — check your connection and try again 😢");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Message 💌'; }
   }
-  ta.value = "";
 }
 
 // ═══════════════════════════════════════════════
@@ -1761,50 +1770,79 @@ async function saveArtEdit(artId) {
   showToast("Artwork updated! ✨");
 }
 
-// ── Cloudinary upload ──────────────────────────
-async function handleImgurUpload(input) {
-    const status = document.getElementById('imgur-upload-status');
+// ── Drag-and-drop / file upload to Cloudinary ──
+function initDropZone() {
+    const zone = document.getElementById('art-drop-zone');
+    if (!zone) return;
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        if (files.length) handleArtFiles(files);
+    });
+}
+
+function handleArtFileSelect(input) {
     const files = Array.from(input.files);
-    if (!files.length) return;
+    if (files.length) handleArtFiles(files);
+    input.value = '';
+}
+
+async function handleArtFiles(files) {
+    const grid   = document.getElementById('art-preview-grid');
+    const status = document.getElementById('art-upload-status');
     status.textContent = `Uploading ${files.length} image(s)…`;
-    const urls = [];
+
     for (const file of files) {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('upload_preset', CLOUDINARY_PRESET);
+        const card = document.createElement('div');
+        card.className = 'preview-card';
+        const thumb = document.createElement('img');
+        thumb.src = URL.createObjectURL(file);
+        thumb.onload = () => URL.revokeObjectURL(thumb.src);
+        const badge = document.createElement('span');
+        badge.className = 'preview-badge';
+        badge.textContent = '⏳';
+        card.appendChild(thumb);
+        card.appendChild(badge);
+        grid.appendChild(card);
+
         try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', CLOUDINARY_PRESET);
             const res = await fetch(
                 `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
                 { method: 'POST', body: fd }
             );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
-            if (json.secure_url) urls.push(json.secure_url);
-            else throw new Error(json.error?.message || 'Upload failed');
+            if (!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
+
+            const inp = document.createElement('input');
+            inp.type = 'url'; inp.className = 'batch-url'; inp.value = json.secure_url;
+            document.getElementById('batch-url-list').appendChild(inp);
+            badge.textContent = '✅';
+            card.classList.add('done');
         } catch (e) {
-            status.textContent = '❌ Upload failed: ' + e.message;
-            return;
+            badge.textContent = '❌';
+            card.classList.add('error');
+            card.title = e.message;
         }
     }
-    // Fill URL fields with uploaded URLs
-    const container = document.getElementById('batch-url-list');
-    container.innerHTML = '';
-    urls.forEach(url => {
-        const inp = document.createElement('input');
-        inp.type = 'url';
-        inp.className = 'batch-url';
-        inp.value = url;
-        container.appendChild(inp);
-    });
-    status.textContent = `✅ ${urls.length} image(s) uploaded!`;
+
+    const done   = grid.querySelectorAll('.done').length;
+    const failed = grid.querySelectorAll('.error').length;
+    status.textContent = failed === 0
+        ? `✅ ${done} image(s) ready — fill in the title and hit Add!`
+        : `⚠️ ${done} uploaded, ${failed} failed`;
 }
 
 function addUrlField() {
     const container = document.getElementById('batch-url-list');
     const inp = document.createElement('input');
-    inp.type = 'url';
-    inp.className = 'batch-url';
-    inp.placeholder = 'Paste image URL…';
+    inp.type = 'url'; inp.className = 'batch-url'; inp.placeholder = 'Paste image URL…';
     container.appendChild(inp);
     inp.focus();
 }
@@ -1842,9 +1880,9 @@ async function submitNewArt() {
     document.getElementById('new-desc').value  = '';
     document.getElementById('new-tags').value  = '';
     document.getElementById('new-nsfw').checked = false;
-    document.getElementById('batch-url-list').innerHTML =
-        '<input type="url" class="batch-url" placeholder="Or paste image URL…" />';
-    document.getElementById('imgur-upload-status').textContent = '';
+    document.getElementById('batch-url-list').innerHTML = '';
+    document.getElementById('art-preview-grid').innerHTML = '';
+    document.getElementById('art-upload-status').textContent = '';
 
     showToast(images.length > 1 ? `${images.length} artworks added! 🎨` : 'Artwork added! 🎨');
 }
@@ -2124,26 +2162,28 @@ function clearMobileCanvas() {
 
 async function submitMobileDrawing() {
   const canvas = document.getElementById("mobile-draw-canvas");
-  if (isCanvasBlank(canvas)) {
-    showToast("Draw something first! 🖌️");
-    return;
-  }
+  if (isCanvasBlank(canvas)) { showToast("Draw something first! 🖌️"); return; }
   if (!checkSubmitCooldown()) return;
-  const dataUrl = safeCanvasDataUrl(canvas);
-  const nameEl = document.getElementById("sender-name");
-  const name = nameEl ? nameEl.value.trim() : "";
+
+  const btn = document.querySelector('.mdb-btn-save');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
   const submission = {
     id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    type: "drawing",
-    data: dataUrl,
-    sender: name || null,
-    requestedVis: "private",
+    type: "drawing", data: safeCanvasDataUrl(canvas),
+    sender: null, requestedVis: "private",
     timestamp: new Date().toISOString(),
   };
-  await savePending(submission);
-  clearMobileCanvas();
-  closeMobileDrawPanel();
-  showToast("Drawing sent! Waiting for review ✨");
+  try {
+    await savePending(submission);
+    clearMobileCanvas();
+    closeMobileDrawPanel();
+    showToast("Drawing sent! Waiting for review ✨");
+  } catch {
+    localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
+    showToast("Failed to send — check your connection and try again 😢");
+    if (btn) { btn.disabled = false; btn.textContent = 'Send ✨'; }
+  }
 }
 
 // ═══════════════════════════════════════════════
