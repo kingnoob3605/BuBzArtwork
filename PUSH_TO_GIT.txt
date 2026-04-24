@@ -6,58 +6,131 @@
    - Right-click inside the WEB folder → "Open in Terminal"
    - OR open VS Code → drag the WEB folder in → open Terminal
 
-2. FIRST TIME SETUP (only if not done yet)
-   git init
-   git remote add origin YOUR_GITHUB_REPO_URL
-
-   Skip this if the repo already exists.
-
-3. STAGE ALL CHANGES
+2. STAGE ALL CHANGES
    git add .
 
-4. COMMIT WITH A MESSAGE
-   git commit -m "gallery update - wiggly paint, pending queue, reactions, socials"
+3. COMMIT WITH A MESSAGE
+   git commit -m "your update message here"
 
-5. PUSH TO GITHUB
+4. PUSH TO GITHUB
    git push origin main
 
-   (If your branch is called "master" use that instead of "main")
-
-6. VERCEL DEPLOYS AUTOMATICALLY
+5. VERCEL DEPLOYS AUTOMATICALLY
    - Go to https://vercel.com/dashboard
    - You should see a new deployment triggered
    - Wait ~30 seconds and visit https://bubz-artwork.vercel.app/
 
 =============================================
-  BEFORE YOU PUSH — CHECKLIST
+  WHAT'S DONE (as of this session)
 =============================================
 
-[ ] Change admin password in data.js (currently "123"!)
-[ ] Add a preview.jpg image (1200x630px) to the WEB folder
-    → This shows as the thumbnail when you share your link
-[ ] Double-check your artworks in data.js are correct
+[x] Supabase migration — all data now stored in cloud DB
+    Tables: comments, reactions, wall_posts, wall_replies,
+            poll_votes, pending_submissions, private_inbox,
+            extra_artworks, art_overrides, hidden_arts
+
+[x] Admin login — Supabase Auth (email + password)
+    No more hardcoded password!
+
+[x] Hardcoded email removed — email is typed at login
+
+[x] Credentials secured — keys.js is gitignored
+    (Supabase URL + anon key live in keys.js only)
+
+[x] Multiple photo upload — add art supports batch URLs
+
+[x] WigglyPaint fullscreen — ⛶ button in WigglyPaint toolbar
+
+[x] Community Wall — Reply threads (Twitter-style flat replies)
+
+[x] Community Wall — Poll feature
+    - Admin creates polls from admin panel (📊 Poll tab)
+    - Visitors vote, see live % bars
+    - Double-vote prevention via localStorage token
+
+[x] Wall filter — All / 🎨 Drawings / 💬 Messages / 📊 Polls
+
+[x] Image upload — catbox.moe (free, no registration)
+    - Switched from Imgur (no Client ID needed)
+    - Upload from device button works out of the box
+
+[x] Supabase MCP config — created at:
+    C:\Users\Internship\.claude\mcp.json
 
 =============================================
-  FILES CHANGED IN THIS SESSION
+  NEXT STEPS — TODO
 =============================================
 
-  index.html   - full restructure, all new features
-  app.js       - all JS logic (reactions, pending, wiggly, etc.)
-  style.css    - all new styles
-  data.js      - banned words, banned emojis, site config
-  Wigglypaint.html - line boil drawing tool
-  manifest.json    - PWA install support (NEW)
-  PUSH_TO_GIT.txt  - this file (you can delete it after)
+[ ] IMGUR API (optional — if you prefer Imgur over catbox.moe)
+    - Go to: https://api.imgur.com/oauth2/addclient
+    - App name: BubzArtwork
+    - Type: Anonymous usage without user authorization
+    - Copy Client ID → paste into keys.js
+
+[ ] SUPABASE MCP — finish setup
+    - Restart Claude Code after creating mcp.json
+    - Authenticate with Supabase in the browser when prompted
+    - Then Claude can directly query/fix your DB for bugs
+
+[ ] SUPABASE KEY ROTATION (IMPORTANT — security!)
+    - Old anon key was committed to git (GitGuardian flagged it)
+    - Go to: Supabase → Settings → API → Regenerate anon key
+    - Update the new key in keys.js
+
+[ ] SUPABASE SQL — run these tables if not done yet
+    (open Supabase SQL Editor and run)
+
+    CREATE TABLE IF NOT EXISTS wall_replies (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      sender TEXT,
+      timestamp TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS poll_votes (
+      post_id TEXT NOT NULL,
+      option_idx INTEGER NOT NULL,
+      voter_token TEXT NOT NULL,
+      PRIMARY KEY (post_id, voter_token)
+    );
+
+[ ] ADD preview.jpg (1200x630px) to WEB folder
+    - Shows as thumbnail when you share your link on Discord etc.
+
+[ ] TEST CATBOX.MOE from your location
+    - Try uploading a file via the admin Add Art panel
+    - If it lags, we can switch to imgbb or Cloudinary
 
 =============================================
-  NOTES
+  FILES CHANGED (this session)
 =============================================
 
-- All data (comments, wall posts, reactions) is stored in
-  localStorage — it only lives in the browser it was created on.
-  Use the Admin > Export button to back it up.
+  index.html      - Polls chip, admin Poll tab, Create Poll form
+  app.js          - buildPollHtml, buildRepliesHtml, renderWall,
+                    addPollOption, submitPoll, votePoll,
+                    postReply, deleteReply, toggleReplyInput,
+                    handleImgurUpload → switched to catbox.moe
+  style.css       - Poll card, poll bars, reply thread styles
+  db.js           - wall_replies + poll_votes cache & DB functions
+  keys.js         - removed IMGUR_CLIENT_ID (no longer needed)
 
-- When you're ready, migrate to Supabase to make data
-  persistent across devices. That's the next big upgrade.
+=============================================
+  KEYS & CREDENTIALS LOCATION
+=============================================
+
+  keys.js         - Supabase URL + anon key (GITIGNORED, safe)
+  .gitignore      - keys.js is listed here, never committed
+  Supabase admin  - https://supabase.com/dashboard
+  Vercel admin    - https://vercel.com/dashboard
+  Live site       - https://bubz-artwork.vercel.app/
+
+=============================================
+  SUPABASE ADMIN UUID
+=============================================
+
+  Your admin UUID: 6e50a426-b59e-4802-88a7-04b0456e4ff4
+  (used in RLS policies — do not lose this)
 
 =============================================
