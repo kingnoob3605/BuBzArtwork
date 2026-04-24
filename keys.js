@@ -4,3 +4,5 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 const CLOUDINARY_CLOUD  = 'dok8occkp';
 const CLOUDINARY_PRESET = 'Bubz_artzone';
+
+const ADMIN_EMAIL = 'kingnoob360pro@gmail.com';
