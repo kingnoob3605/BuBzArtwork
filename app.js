@@ -1311,9 +1311,10 @@ function onLogoClick() {
 function openAdminPrompt() {
   const prompt = document.getElementById("admin-password-prompt");
   prompt.classList.remove("hidden");
+  document.getElementById("pw-email").value = "";
   document.getElementById("pw-input").value = "";
   document.getElementById("pw-error").textContent = "";
-  setTimeout(() => document.getElementById("pw-input").focus(), 50);
+  setTimeout(() => document.getElementById("pw-email").focus(), 50);
 }
 
 function closeAdminPrompt() {
@@ -1321,15 +1322,14 @@ function closeAdminPrompt() {
 }
 
 async function submitPassword() {
-  const val = document.getElementById("pw-input").value;
+  const email = document.getElementById("pw-email").value.trim();
+  const val   = document.getElementById("pw-input").value;
   const errEl = document.getElementById("pw-error");
+  if (!email) { errEl.textContent = "Enter your email!"; return; }
   errEl.textContent = "Checking…";
-  const { data, error } = await _db.auth.signInWithPassword({
-    email: "kingnoob360pro@gmail.com",
-    password: val,
-  });
+  const { data, error } = await _db.auth.signInWithPassword({ email, password: val });
   if (error || !data.user) {
-    errEl.textContent = "Wrong password!";
+    errEl.textContent = "Wrong email or password!";
     document.getElementById("pw-input").value = "";
     document.getElementById("pw-input").focus();
     return;
@@ -1589,50 +1589,95 @@ async function saveArtEdit(artId) {
   showToast("Artwork updated! ✨");
 }
 
-// ── Add Art ────────────────────────────────────
+// ── Imgur upload ───────────────────────────────
+async function handleImgurUpload(input) {
+    const status = document.getElementById('imgur-upload-status');
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    if (!window.IMGUR_CLIENT_ID) {
+        showToast('Add IMGUR_CLIENT_ID to keys.js to enable uploads!');
+        return;
+    }
+    status.textContent = `Uploading ${files.length} image(s)…`;
+    const urls = [];
+    for (const file of files) {
+        const fd = new FormData();
+        fd.append('image', file);
+        try {
+            const res = await fetch('https://api.imgur.com/3/image', {
+                method: 'POST',
+                headers: { Authorization: `Client-ID ${window.IMGUR_CLIENT_ID}` },
+                body: fd,
+            });
+            const json = await res.json();
+            if (json.success) urls.push(json.data.link);
+            else throw new Error(json.data?.error || 'Upload failed');
+        } catch (e) {
+            status.textContent = '❌ Upload failed: ' + e.message;
+            return;
+        }
+    }
+    // Fill URL fields with uploaded URLs
+    const container = document.getElementById('batch-url-list');
+    container.innerHTML = '';
+    urls.forEach(url => {
+        const inp = document.createElement('input');
+        inp.type = 'url';
+        inp.className = 'batch-url';
+        inp.value = url;
+        container.appendChild(inp);
+    });
+    status.textContent = `✅ ${urls.length} image(s) uploaded!`;
+}
+
+function addUrlField() {
+    const container = document.getElementById('batch-url-list');
+    const inp = document.createElement('input');
+    inp.type = 'url';
+    inp.className = 'batch-url';
+    inp.placeholder = 'Paste image URL…';
+    container.appendChild(inp);
+    inp.focus();
+}
+
+// ── Add Art (supports batch / multiple URLs) ───
 async function submitNewArt() {
-  const title = document.getElementById("new-title").value.trim();
-  const desc = document.getElementById("new-desc").value.trim();
-  const image = document.getElementById("new-image").value.trim();
-  const tagsRaw = document.getElementById("new-tags").value.trim();
-  const nsfw = document.getElementById("new-nsfw").checked;
+    const title   = document.getElementById('new-title').value.trim();
+    const desc    = document.getElementById('new-desc').value.trim();
+    const tagsRaw = document.getElementById('new-tags').value.trim();
+    const nsfw    = document.getElementById('new-nsfw').checked;
 
-  if (!title || !image) {
-    showToast("Title and Image URL are required!");
-    return;
-  }
+    const images = Array.from(document.querySelectorAll('.batch-url'))
+        .map(i => i.value.trim()).filter(Boolean);
 
-  const tags = tagsRaw
-    ? tagsRaw
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : [];
-  const newId = String(Date.now() + Math.floor(Math.random() * 1000));
-  const newArt = {
-    id: newId,
-    title,
-    description: desc,
-    image,
-    tags,
-    nsfw,
-    date: new Date().toISOString().split("T")[0],
-  };
+    if (!title) { showToast('Title is required!'); return; }
+    if (!images.length) { showToast('At least one image is required!'); return; }
 
-  // Save to Supabase and add to live cache
-  await dbAddExtraArtwork(newArt);
-  allArtworks.unshift(newArt);
-  renderTagChips();
-  renderGallery();
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const date = new Date().toISOString().split('T')[0];
 
-  // Clear form
-  document.getElementById("new-title").value = "";
-  document.getElementById("new-desc").value = "";
-  document.getElementById("new-image").value = "";
-  document.getElementById("new-tags").value = "";
-  document.getElementById("new-nsfw").checked = false;
+    for (let i = 0; i < images.length; i++) {
+        const newArt = {
+            id: String(Date.now() + i),
+            title: images.length > 1 ? `${title} (${i + 1}/${images.length})` : title,
+            description: desc, image: images[i], tags, nsfw, date,
+        };
+        await dbAddExtraArtwork(newArt);
+        allArtworks.unshift(newArt);
+    }
 
-  showToast("Artwork added! 🎨");
+    renderTagChips();
+    renderGallery();
+
+    document.getElementById('new-title').value = '';
+    document.getElementById('new-desc').value  = '';
+    document.getElementById('new-tags').value  = '';
+    document.getElementById('new-nsfw').checked = false;
+    document.getElementById('batch-url-list').innerHTML =
+        '<input type="url" class="batch-url" placeholder="Or paste image URL…" />';
+    document.getElementById('imgur-upload-status').textContent = '';
+
+    showToast(images.length > 1 ? `${images.length} artworks added! 🎨` : 'Artwork added! 🎨');
 }
 
 // ── Submissions view ───────────────────────────
