@@ -1032,25 +1032,32 @@ function renderWall() {
         const repliesHtml   = buildRepliesHtml(post.id);
         const replyCount    = getReplies(post.id).length;
 
+        const adminDel = adminLoggedIn
+            ? `<button class="wall-del-btn" onclick="deletePublicPost('${post.id}')" title="Delete post">🗑</button>`
+            : '';
+
         const footer = `<div class="wall-card-footer">
             <span class="wall-type-badge">${post.type === 'drawing' ? '🎨 Drawing' : post.type === 'poll' ? '📊 Poll' : '💬 Message'}</span>
             ${post.type !== 'poll' ? sender : ''}
             <span class="wall-date">${escHtml(date)}</span>
-            ${adminLoggedIn ? `<button class="wall-del-btn" onclick="deletePublicPost('${post.id}')">🗑</button>` : ''}
         </div>
         <div class="wall-reactions-row" id="wall-reactions-${post.id}">${reactionsHtml}</div>
         <div class="wall-replies-wrap">
             <div class="wall-replies" id="replies-${post.id}">${repliesHtml}</div>
             <div class="reply-input-row" id="reply-row-${post.id}" style="display:none">
-                <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
-                    onkeydown="if(event.key==='Enter')postReply('${post.id}')">
-                <select class="reply-anon-sel" id="reply-anon-${post.id}">
-                    <option value="">🙈 Anon</option>
-                    <option value="__named__">✏️ Named…</option>
-                </select>
-                <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name" style="display:none" maxlength="40">
-                <button class="reply-send-btn" onclick="postReply('${post.id}')">Send</button>
-                <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕</button>
+                <div class="reply-input-top">
+                    <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
+                        onkeydown="if(event.key==='Enter')postReply('${post.id}')">
+                </div>
+                <div class="reply-input-bottom">
+                    <select class="reply-anon-sel" id="reply-anon-${post.id}">
+                        <option value="">🙈 Anon</option>
+                        <option value="__named__">✏️ Named…</option>
+                    </select>
+                    <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name…" style="display:none" maxlength="40">
+                    <button class="reply-send-btn" onclick="postReply('${post.id}')">Send ✨</button>
+                    <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕</button>
+                </div>
             </div>
             <button class="reply-toggle-btn" onclick="toggleReplyInput('${post.id}')">
                 ↩ ${replyCount > 0 ? replyCount + ' Repl' + (replyCount === 1 ? 'y' : 'ies') : 'Reply'}
@@ -1059,16 +1066,19 @@ function renderWall() {
 
         if (post.type === 'poll') {
             return `<div class="wall-card poll-card">
+                ${adminDel}
                 <div class="wall-card-poll">${buildPollHtml(post)}</div>
                 ${footer}
             </div>`;
         } else if (post.type === 'drawing') {
             return `<div class="wall-card">
+                ${adminDel}
                 <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
                 ${footer}
             </div>`;
         } else {
             return `<div class="wall-card">
+                ${adminDel}
                 <div class="wall-card-text">${escHtml(post.data)}</div>
                 ${footer}
             </div>`;

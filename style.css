@@ -4608,16 +4608,43 @@ body.modal-open { overflow: hidden; touch-action: none; }
 }
 .reply-toggle-btn:hover { opacity: 1; }
 
+/* Admin delete button — top-right corner of wall card */
+.wall-del-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.45);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 3px 7px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+}
+.wall-card:hover .wall-del-btn { opacity: 1; }
+
 .reply-input-row {
     display: flex;
+    flex-direction: column;
     gap: 6px;
     margin-top: 6px;
+}
+
+.reply-input-top { display: flex; }
+
+.reply-input-bottom {
+    display: flex;
+    gap: 6px;
     align-items: center;
 }
 
-.reply-input-row input {
+.reply-input-row input.reply-input {
     flex: 1;
-    padding: 6px 10px;
+    width: 100%;
+    padding: 7px 12px;
     border-radius: 20px;
     border: 1.5px solid var(--card-border);
     background: var(--card);
@@ -4626,7 +4653,32 @@ body.modal-open { overflow: hidden; touch-action: none; }
     font-family: var(--font-body);
     min-width: 0;
 }
-.reply-input-row input:focus { outline: none; border-color: var(--accent); }
+.reply-input-row input.reply-input:focus { outline: none; border-color: var(--accent); }
+
+.reply-name-input {
+    flex: 1;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.8rem;
+    font-family: var(--font-body);
+    min-width: 0;
+}
+.reply-name-input:focus { outline: none; border-color: var(--accent); }
+
+.reply-anon-sel {
+    padding: 5px 8px;
+    border-radius: 20px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.78rem;
+    font-family: var(--font-body);
+    cursor: pointer;
+    flex-shrink: 0;
+}
 
 .reply-send-btn {
     padding: 5px 12px;
@@ -4639,6 +4691,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
     font-family: var(--font-body);
     transition: opacity 0.15s;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 .reply-send-btn:hover { opacity: 0.85; }
 
@@ -4651,5 +4704,6 @@ body.modal-open { overflow: hidden; touch-action: none; }
     cursor: pointer;
     color: var(--fg);
     transition: border-color 0.15s;
+    flex-shrink: 0;
 }
 .reply-cancel-btn:hover { border-color: var(--accent); }
