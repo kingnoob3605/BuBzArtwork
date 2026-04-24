@@ -1348,14 +1348,15 @@ nav {
 }
 @media (max-width: 480px) {
     #wall-grid {
-        column-count: 2;
-        column-gap: 0.6rem;
+        column-count: 1;
+        column-gap: 0;
         padding: 0.85rem 0.5rem 1.25rem;
         border-width: 4px;
     }
     .wall-card {
-        margin-bottom: 0.6rem;
+        margin-bottom: 0.75rem;
         transform: none !important;
+        width: 100%;
     }
     .wall-card::before { display: none; }
     .wall-card-text {
@@ -4641,8 +4642,10 @@ body.modal-open { overflow: hidden; touch-action: none; }
     display: flex;
     gap: 6px;
     align-items: center;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
+
+.reply-toggle-btn { margin-top: 4px; }
 
 .reply-input-row input.reply-input {
     flex: 1;
@@ -4670,7 +4673,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
     color: var(--fg);
     font-size: 0.82rem;
     font-family: var(--font-body);
-    min-width: 0;
+    min-width: 80px;
     box-sizing: border-box;
     height: 34px;
 }
