@@ -59,28 +59,33 @@ function showToast(msg) {
 }
 
 // ─── Init ─────────────────────────────────────
-function init() {
+async function init() {
     document.title = SITE_CONFIG.title;
     document.getElementById('logo-text').textContent = SITE_CONFIG.logoText;
     const aboutTextEl = document.getElementById('about-text');
     if (aboutTextEl) aboutTextEl.textContent = SITE_CONFIG.aboutText;
 
-    // Merge extra artworks from localStorage (dedup by id, prepend)
-    const extra = JSON.parse(localStorage.getItem('extra-artworks') || '[]');
-    const baseIds = new Set(artworks.map(a => a.id));
-    const dedupedExtra = extra.filter(a => !baseIds.has(a.id));
+    // Load all data from Supabase into in-memory cache
+    await dbInit();
+
+    // Merge extra artworks from Supabase cache (dedup by id, prepend)
+    const baseIds = new Set(artworks.map(a => String(a.id)));
+    const dedupedExtra = _extraArts.filter(a => !baseIds.has(String(a.id)));
     allArtworks = [...dedupedExtra, ...artworks];
 
-    // Apply saved title/description overrides
-    const overrides = getArtOverrides();
+    // Apply saved overrides (title / desc / image / tags / nsfw)
     allArtworks.forEach(art => {
-        if (overrides[art.id]) {
-            if (overrides[art.id].title)       art.title       = overrides[art.id].title;
-            if (overrides[art.id].description) art.description = overrides[art.id].description;
+        const ov = _overrides[String(art.id)];
+        if (ov) {
+            if (ov.title       !== undefined && ov.title       !== null) art.title       = ov.title;
+            if (ov.description !== undefined && ov.description !== null) art.description = ov.description;
+            if (ov.image       !== undefined && ov.image       !== null) art.image       = ov.image;
+            if (ov.tags        !== undefined && ov.tags        !== null) art.tags        = ov.tags;
+            if (ov.nsfw        !== undefined && ov.nsfw        !== null) art.nsfw        = ov.nsfw;
         }
     });
 
-    // Age gate — check expiry (30 days) and session flag
+    // Age gate — check expiry (30 days) and session flag (stays in localStorage — per-user)
     const ageTs = localStorage.getItem('age-confirmed-ts');
     const sessionOk = sessionStorage.getItem('age-session');
     const expired = !ageTs || (Date.now() - parseInt(ageTs, 10)) > 30 * 24 * 60 * 60 * 1000;
@@ -181,8 +186,8 @@ function setTagFilter(tag, el) {
 }
 
 function getFilteredArtworks() {
-    const hidden = getHiddenArtIds();
-    const filtered = allArtworks.filter(art => !hidden.includes(art.id)).filter(art => {
+    const hidden = getHiddenArtIds(); // returns string array from db.js cache
+    const filtered = allArtworks.filter(art => !hidden.includes(String(art.id))).filter(art => {
         const passFilter =
             currentFilter === 'all' ||
             (currentFilter === 'sfw'  && !art.nsfw) ||
@@ -319,26 +324,18 @@ function closeLightbox() {
 // ═══════════════════════════════════════════════
 const REACTION_EMOJIS = ['❤️','🔥','✨','😍','🥺'];
 
-function getReactions(artId) {
-    return JSON.parse(localStorage.getItem('reactions-' + artId) || '{}');
-}
-
-function saveReactions(artId, data) {
-    localStorage.setItem('reactions-' + artId, JSON.stringify(data));
-}
+// getReactions / saveReactions are now provided by db.js (synchronous cache reads)
 
 function isEmojiAllowed(emoji) {
     return !BANNED_REACTION_EMOJIS.includes(emoji);
 }
 
-function addReaction(artId, emoji) {
+async function addReaction(artId, emoji) {
     if (!isEmojiAllowed(emoji)) {
         showToast('That reaction isn\'t allowed here 🚫');
         return;
     }
-    const data = getReactions(artId);
-    data[emoji] = (data[emoji] || 0) + 1;
-    saveReactions(artId, data);
+    await dbIncrementReaction(artId, emoji);
     renderReactions(artId);
     // Also refresh the card in the gallery
     const card = document.querySelector(`.art-card[data-art-id="${artId}"]`);
@@ -475,13 +472,7 @@ function onPickerOutsideClick(e) {
 // ═══════════════════════════════════════════════
 // COMMENTS
 // ═══════════════════════════════════════════════
-function getComments(artId) {
-    return JSON.parse(localStorage.getItem('comments-' + artId) || '[]');
-}
-
-function saveComments(artId, comments) {
-    localStorage.setItem('comments-' + artId, JSON.stringify(comments));
-}
+// getComments is now provided by db.js (synchronous cache read)
 
 function renderComments(artId) {
     const list = document.getElementById('comments-list');
@@ -490,11 +481,11 @@ function renderComments(artId) {
         list.innerHTML = '<span class="comment-no">No comments yet, be the first! ✨</span>';
         return;
     }
-    list.innerHTML = comments.map((c, i) => `
+    list.innerHTML = comments.map(c => `
         <div class="comment-item">
             <div class="comment-top">
                 <div class="comment-meta">${escHtml(formatCommentDate(c.date))}</div>
-                ${adminLoggedIn ? `<button class="comment-delete" onclick="deleteComment(${artId}, ${i})" title="Delete comment">🗑</button>` : ''}
+                ${adminLoggedIn ? `<button class="comment-delete" onclick="deleteComment(${JSON.stringify(artId)}, '${c.id}')" title="Delete comment">🗑</button>` : ''}
             </div>
             <div>${escHtml(c.text)}</div>
         </div>
@@ -502,11 +493,9 @@ function renderComments(artId) {
     list.scrollTop = list.scrollHeight;
 }
 
-function deleteComment(artId, index) {
+async function deleteComment(artId, commentId) {
     if (!confirm('Delete this comment?')) return;
-    const comments = getComments(artId);
-    comments.splice(index, 1);
-    saveComments(artId, comments);
+    await dbDeleteComment(commentId);
     renderComments(artId);
 }
 
@@ -584,7 +573,7 @@ function showSassyBannedPopup() {
     }, 4000);
 }
 
-function postComment() {
+async function postComment() {
     if (!currentArtwork) return;
     const input = document.getElementById('comment-input');
     const text = input.value.trim();
@@ -604,9 +593,7 @@ function postComment() {
         return;
     }
 
-    const comments = getComments(currentArtwork.id);
-    comments.push({ text, date: new Date().toISOString() });
-    saveComments(currentArtwork.id, comments);
+    await dbAddComment(currentArtwork.id, text);
     input.value = '';
     updateCommentCounter(input);
     renderComments(currentArtwork.id);
@@ -655,73 +642,45 @@ function getVisibility(tab) {
 // ═══════════════════════════════════════════════
 let wallFilter = 'all';
 
-function getPublicPosts() {
-    return JSON.parse(localStorage.getItem('public-posts') || '[]');
-}
-function savePublicPosts(posts) {
-    localStorage.setItem('public-posts', JSON.stringify(posts));
-}
-function getPending() {
-    return JSON.parse(localStorage.getItem('pending-submissions') || '[]');
-}
-function savePending(entry) {
-    const pending = getPending();
-    pending.push(entry);
-    localStorage.setItem('pending-submissions', JSON.stringify(pending));
-}
-function removePending(id) {
-    const pending = getPending().filter(p => p.id !== id);
-    localStorage.setItem('pending-submissions', JSON.stringify(pending));
-}
+// getPublicPosts / getPending / getSubmissions / savePending / removePending / savePublicPosts
+// are now provided by db.js (synchronous cache reads, async writes)
 
-function approveToWall(id) {
-    const pending = getPending();
-    const item = pending.find(p => p.id === id);
+async function approveToWall(id) {
+    const item = _pending.find(p => p.id === id);
     if (!item) return;
-    removePending(id);
-    const posts = getPublicPosts();
-    posts.push(item);
-    savePublicPosts(posts);
+    await removePending(id);
+    await dbAddPublicPost(item);
     renderPending();
     renderWall();
     updatePendingBadge();
     showToast('✅ Approved! Now on the Wall!');
 }
-function approvePrivateToWall(idx) {
-    const subs = getSubmissions();
-    const item = subs[subs.length - 1 - idx]; // list is reversed in render
+async function approvePrivateToWall(id) {
+    const item = _inbox.find(p => p.id === id);
     if (!item) return;
-    subs.splice(subs.length - 1 - idx, 1);
-    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
-    const posts = getPublicPosts();
-    posts.push({ ...item, requestedVis: 'public' });
-    savePublicPosts(posts);
+    await dbDeletePrivate(id);
+    await dbAddPublicPost({ ...item, requestedVis: 'public' });
     renderSubmissions();
     renderWall();
     showToast('✅ Moved to Wall!');
 }
-function approvePrivate(id) {
-    const pending = getPending();
-    const item = pending.find(p => p.id === id);
+async function approvePrivate(id) {
+    const item = _pending.find(p => p.id === id);
     if (!item) return;
-    removePending(id);
-    const subs = getSubmissions();
-    subs.push(item);
-    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
+    await removePending(id);
+    await dbAddPrivate(item);
     renderPending();
     updatePendingBadge();
     showToast('🔒 Kept as private submission.');
 }
-function deletePending(id) {
-    removePending(id);
+async function deletePending(id) {
+    await removePending(id);
     renderPending();
     updatePendingBadge();
     showToast('🗑 Submission deleted.');
 }
-function deletePrivateSub(idx) {
-    const subs = getSubmissions();
-    subs.splice(idx, 1);
-    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
+async function deletePrivateSub(id) {
+    await dbDeletePrivate(id);
     renderSubmissions();
     showToast('🗑 Submission deleted.');
 }
@@ -733,17 +692,11 @@ function setWallFilter(filter, el) {
     renderWall();
 }
 
-function getWallReactions(postId) {
-    return JSON.parse(localStorage.getItem('wall-reactions-' + postId) || '{}');
-}
-function saveWallReactions(postId, data) {
-    localStorage.setItem('wall-reactions-' + postId, JSON.stringify(data));
-}
-function addWallReaction(postId, emoji) {
+// getWallReactions is now provided by db.js (synchronous cache read)
+
+async function addWallReaction(postId, emoji) {
     if (!isEmojiAllowed(emoji)) { showToast('That reaction isn\'t allowed here 🚫'); return; }
-    const data = getWallReactions(postId);
-    data[emoji] = (data[emoji] || 0) + 1;
-    saveWallReactions(postId, data);
+    await dbIncrementWallReaction(postId, emoji);
     renderWallReactions(postId);
 }
 function renderWallReactions(postId) {
@@ -803,10 +756,9 @@ function buildWallReactionsHtml(postId) {
     ).join('') + `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`;
 }
 
-function deletePublicPost(id) {
+async function deletePublicPost(id) {
     if (!confirm('Delete this public post?')) return;
-    const posts = getPublicPosts().filter(p => p.id !== id);
-    savePublicPosts(posts);
+    await dbDeletePublicPost(id);
     renderWall();
 }
 
@@ -931,15 +883,7 @@ function clearCanvas() {
 // ═══════════════════════════════════════════════
 // SUBMISSIONS
 // ═══════════════════════════════════════════════
-function getSubmissions() {
-    return JSON.parse(localStorage.getItem('anonymous-submissions') || '[]');
-}
-
-function saveSubmission(submission) {
-    const subs = getSubmissions();
-    subs.push(submission);
-    localStorage.setItem('anonymous-submissions', JSON.stringify(subs));
-}
+// getSubmissions is now provided by db.js (synchronous cache read)
 
 function isCanvasBlank(canvas) {
     const ctx = canvas.getContext('2d');
@@ -997,7 +941,7 @@ function checkCommentCooldown() {
     return true;
 }
 
-function submitDrawing() {
+async function submitDrawing() {
     if (!checkSubmitCooldown()) return;
     const canvas = document.getElementById('draw-canvas');
     if (isCanvasBlank(canvas)) { showToast('Draw something first! 🖌️'); return; }
@@ -1011,7 +955,7 @@ function submitDrawing() {
         timestamp: new Date().toISOString(), requestedVis: vis
     };
 
-    savePending(entry);
+    await savePending(entry);
     if (vis === 'public') {
         showToast('Drawing submitted! Waiting for approval 🌐✨');
     } else {
@@ -1020,7 +964,7 @@ function submitDrawing() {
     clearCanvas();
 }
 
-function submitMessage() {
+async function submitMessage() {
     if (!checkSubmitCooldown()) return;
     const ta = document.getElementById('message-textarea');
     const text = ta.value.trim();
@@ -1034,7 +978,7 @@ function submitMessage() {
         timestamp: new Date().toISOString(), requestedVis: vis
     };
 
-    savePending(entry);
+    await savePending(entry);
     if (vis === 'public') {
         showToast('Message submitted! Waiting for approval 🌐✨');
     } else {
@@ -1069,18 +1013,26 @@ function closeAdminPrompt() {
     document.getElementById('admin-password-prompt').classList.add('hidden');
 }
 
-function submitPassword() {
+async function submitPassword() {
     const val = document.getElementById('pw-input').value;
-    if (val === SITE_CONFIG.adminPassword) {
-        closeAdminPrompt();
-        adminLoggedIn = true;
-        document.body.classList.add('admin-logged');
-        openAdmin();
-    } else {
-        document.getElementById('pw-error').textContent = 'Wrong password!';
+    const errEl = document.getElementById('pw-error');
+    errEl.textContent = 'Checking…';
+    const { data, error } = await _db.auth.signInWithPassword({
+        email: 'depamaylo.angelo360@gmail.com',
+        password: val
+    });
+    if (error || !data.user) {
+        errEl.textContent = 'Wrong password!';
         document.getElementById('pw-input').value = '';
         document.getElementById('pw-input').focus();
+        return;
     }
+    // Reload cache with authenticated session to access admin-only tables
+    await dbInit();
+    closeAdminPrompt();
+    adminLoggedIn = true;
+    document.body.classList.add('admin-logged');
+    openAdmin();
 }
 
 function onPasswordKeydown(e) {
@@ -1134,18 +1086,12 @@ function showAdminTab(tab) {
 }
 
 // ── My Art tab ────────────────────────────────
-function getArtOverrides() {
-    return JSON.parse(localStorage.getItem('art-overrides') || '{}');
-}
-
-function getHiddenArtIds() {
-    return JSON.parse(localStorage.getItem('hidden-art-ids') || '[]');
-}
+// getArtOverrides / getHiddenArtIds are now provided by db.js (synchronous cache reads)
 
 function renderAdminArtList() {
     const list = document.getElementById('admin-art-list');
-    const hidden = getHiddenArtIds();
-    const visible = allArtworks.filter(a => !hidden.includes(a.id));
+    const hidden = getHiddenArtIds(); // string array from db.js cache
+    const visible = allArtworks.filter(a => !hidden.includes(String(a.id)));
 
     if (!visible.length) {
         list.innerHTML = '<div class="no-submissions">No artworks yet! Add some above 🎨</div>';
@@ -1229,43 +1175,36 @@ function maiToggle(artId, panel) {
 function renderManageComments(artId) {
     const comments = getComments(artId);
     if (!comments.length) return '<span class="comment-no" style="padding:0.5rem 0;display:block">No comments yet.</span>';
-    return comments.map((c, i) => `
+    return comments.map(c => `
         <div class="mai-comment-item">
             <div class="mai-comment-text">${escHtml(c.text)}</div>
             <div class="mai-comment-foot">
                 <span class="comment-meta">${escHtml(formatCommentDate(c.date))}</span>
-                <button class="sub-btn sub-btn-delete" style="padding:0.2rem 0.6rem;font-size:0.72rem" onclick="deleteManageComment(${artId},${i})">🗑 Delete</button>
+                <button class="sub-btn sub-btn-delete" style="padding:0.2rem 0.6rem;font-size:0.72rem" onclick="deleteManageComment(${JSON.stringify(artId)},'${c.id}')">🗑 Delete</button>
             </div>
         </div>`).join('');
 }
 
-function deleteManageComment(artId, index) {
-    const comments = getComments(artId);
-    comments.splice(index, 1);
-    saveComments(artId, comments);
+async function deleteManageComment(artId, commentId) {
+    await dbDeleteComment(commentId);
     // Refresh only the comment list, not the whole panel
     const cl = document.getElementById(`mai-clist-${artId}`);
     if (cl) cl.innerHTML = renderManageComments(artId);
     const cc = document.getElementById(`mai-ccount-${artId}`);
-    if (cc) cc.textContent = `💬 ${comments.length}`;
+    if (cc) cc.textContent = `💬 ${getComments(artId).length}`;
     // Refresh lightbox comments if open
-    if (currentArtwork && currentArtwork.id === artId) renderComments(artId);
+    if (currentArtwork && String(currentArtwork.id) === String(artId)) renderComments(artId);
 }
 
-function deleteArtwork(artId) {
+async function deleteArtwork(artId) {
     if (!confirm('Remove this artwork from the gallery?')) return;
-    const isExtra = !artworks.find(a => a.id === artId);
+    const isExtra = !artworks.find(a => String(a.id) === String(artId));
     if (isExtra) {
-        // Remove from extra-artworks in localStorage
-        const extra = JSON.parse(localStorage.getItem('extra-artworks') || '[]');
-        localStorage.setItem('extra-artworks', JSON.stringify(extra.filter(a => a.id !== artId)));
+        await dbDeleteExtraArtwork(artId);
     } else {
-        // Hide data.js artworks via hidden list
-        const hidden = getHiddenArtIds();
-        if (!hidden.includes(artId)) hidden.push(artId);
-        localStorage.setItem('hidden-art-ids', JSON.stringify(hidden));
+        await dbHideArt(artId);
     }
-    allArtworks = allArtworks.filter(a => a.id !== artId);
+    allArtworks = allArtworks.filter(a => String(a.id) !== String(artId));
     renderGallery();
     renderTagChips();
     renderAdminArtList();
@@ -1276,31 +1215,32 @@ function deleteArtwork(artId) {
 function toggleManageComments(artId) { maiToggle(artId, 'comments'); }
 function toggleManageEdit(artId)     { maiToggle(artId, 'edit'); }
 
-function saveArtEdit(artId) {
-    const title = document.getElementById(`edit-title-${artId}`).value.trim();
-    const desc  = document.getElementById(`edit-desc-${artId}`).value.trim();
-    const image = document.getElementById(`edit-image-${artId}`)?.value.trim();
+async function saveArtEdit(artId) {
+    const title   = document.getElementById(`edit-title-${artId}`).value.trim();
+    const desc    = document.getElementById(`edit-desc-${artId}`).value.trim();
+    const image   = document.getElementById(`edit-image-${artId}`)?.value.trim();
     const tagsRaw = document.getElementById(`edit-tags-${artId}`)?.value.trim();
-    const nsfw  = document.getElementById(`edit-nsfw-${artId}`)?.checked;
+    const nsfw    = document.getElementById(`edit-nsfw-${artId}`)?.checked;
 
     if (!title) { showToast('Title cannot be empty!'); return; }
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const changes = { title, description: desc, image: image || '', tags, nsfw };
 
-    const overrides = getArtOverrides();
-    overrides[artId] = { title, description: desc, image, tags, nsfw };
-    localStorage.setItem('art-overrides', JSON.stringify(overrides));
+    // Save override for data.js artworks (or extra artworks) — covers title/desc/image/tags/nsfw
+    await dbSaveArtOverride(artId, changes);
 
-    // Apply to live array
-    const art = allArtworks.find(a => a.id === artId);
-    if (art) { art.title = title; art.description = desc; if (image) art.image = image; art.tags = tags; art.nsfw = nsfw; }
+    // Apply to live array immediately
+    const art = allArtworks.find(a => String(a.id) === String(artId));
+    if (art) {
+        art.title = title; art.description = desc;
+        if (image) art.image = image;
+        art.tags = tags; art.nsfw = nsfw;
+    }
 
-    // Also update extra-artworks if it's a custom one
-    const isExtra = !artworks.find(a => a.id === artId);
+    // Also update the extra_artworks table if it's a custom (non-data.js) artwork
+    const isExtra = !artworks.find(a => String(a.id) === String(artId));
     if (isExtra) {
-        const extra = JSON.parse(localStorage.getItem('extra-artworks') || '[]');
-        const idx = extra.findIndex(a => a.id === artId);
-        if (idx !== -1) { extra[idx] = { ...extra[idx], title, description: desc, image: image || extra[idx].image, tags, nsfw }; }
-        localStorage.setItem('extra-artworks', JSON.stringify(extra));
+        await dbUpdateExtraArtwork(artId, changes);
     }
 
     renderGallery();
@@ -1310,7 +1250,7 @@ function saveArtEdit(artId) {
 }
 
 // ── Add Art ────────────────────────────────────
-function submitNewArt() {
+async function submitNewArt() {
     const title   = document.getElementById('new-title').value.trim();
     const desc    = document.getElementById('new-desc').value.trim();
     const image   = document.getElementById('new-image').value.trim();
@@ -1322,16 +1262,12 @@ function submitNewArt() {
         return;
     }
 
-    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const newId = Date.now() + Math.floor(Math.random() * 1000);
+    const tags  = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const newId = String(Date.now() + Math.floor(Math.random() * 1000));
     const newArt = { id: newId, title, description: desc, image, tags, nsfw, date: new Date().toISOString().split('T')[0] };
 
-    // Save to localStorage
-    const extra = JSON.parse(localStorage.getItem('extra-artworks') || '[]');
-    extra.push(newArt);
-    localStorage.setItem('extra-artworks', JSON.stringify(extra));
-
-    // Add to live array & re-render
+    // Save to Supabase and add to live cache
+    await dbAddExtraArtwork(newArt);
     allArtworks.unshift(newArt);
     renderTagChips();
     renderGallery();
@@ -1426,7 +1362,7 @@ function renderSubmissions() {
 
     if (privateSubs.length) {
         html += `<div class="submissions-section-label">🔒 Private Inbox (${privateSubs.length})</div>`;
-        html += privateSubs.map((s, i) => `
+        html += privateSubs.map(s => `
             <div class="submission-item">
                 <div class="submission-meta">
                     <span class="sub-vis-badge priv">🔒 Private</span>
@@ -1436,8 +1372,8 @@ function renderSubmissions() {
                 </div>
                 ${_subContent(s)}
                 <div class="sub-actions">
-                    <button class="sub-btn sub-btn-approve" onclick="approvePrivateToWall(${i})">✅ Move → Wall</button>
-                    <button class="sub-btn sub-btn-delete" onclick="deletePrivateSub(${privateSubs.length - 1 - i})">🗑 Delete</button>
+                    <button class="sub-btn sub-btn-approve" onclick="approvePrivateToWall('${s.id}')">✅ Move → Wall</button>
+                    <button class="sub-btn sub-btn-delete" onclick="deletePrivateSub('${s.id}')">🗑 Delete</button>
                 </div>
             </div>`).join('');
     }
@@ -1474,7 +1410,7 @@ function sendCurrentDrawing() {
     }
 }
 
-window.addEventListener('message', e => {
+window.addEventListener('message', async e => {
     if (!e.data || e.data.type !== 'wiggly-submit') return;
     const dataUrl = e.data.dataUrl;
     if (!dataUrl) return;
@@ -1489,7 +1425,7 @@ window.addEventListener('message', e => {
         timestamp: new Date().toISOString(),
         requestedVis: vis
     };
-    savePending(entry);
+    await savePending(entry);
     if (vis === 'public') {
         showToast('WigglyPaint submitted! Waiting for approval 🌐✨');
     } else {
@@ -1592,21 +1528,22 @@ function clearMobileCanvas() {
     if (eraserBtn) eraserBtn.classList.remove('active');
 }
 
-function submitMobileDrawing() {
+async function submitMobileDrawing() {
     const canvas = document.getElementById('mobile-draw-canvas');
     if (isCanvasBlank(canvas)) { showToast('Draw something first! 🖌️'); return; }
+    if (!checkSubmitCooldown()) return;
     const dataUrl = safeCanvasDataUrl(canvas);
     const nameEl = document.getElementById('sender-name');
     const name = nameEl ? nameEl.value.trim() : '';
     const submission = {
-        id: String(Date.now()),
+        id: String(Date.now() + Math.floor(Math.random() * 1000)),
         type: 'drawing',
         data: dataUrl,
         sender: name || null,
         requestedVis: 'private',
         timestamp: new Date().toISOString()
     };
-    savePending(submission);
+    await savePending(submission);
     clearMobileCanvas();
     closeMobileDrawPanel();
     showToast('Drawing sent! Waiting for review ✨');
@@ -1691,37 +1628,47 @@ function navigateLightbox(dir) {
 // ADMIN: EXPORT BACKUP
 // ═══════════════════════════════════════════════
 function exportData() {
-    const keys = ['public-posts','pending-submissions','anonymous-submissions','extra-artworks','art-overrides','hidden-art-ids'];
-    const backup = { exportedAt: new Date().toISOString(), data: {} };
-    keys.forEach(k => { const v = localStorage.getItem(k); if (v) backup.data[k] = JSON.parse(v); });
-    for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k.startsWith('reactions-') || k.startsWith('comments-') || k.startsWith('wall-reactions-'))
-            backup.data[k] = JSON.parse(localStorage.getItem(k));
+    // Build per-art comment and reaction maps from in-memory cache
+    const commentMap = {};
+    for (const [k, v] of Object.entries(_comments)) {
+        if (v.length) commentMap['comments-' + k] = v;
     }
+    const reactionMap = {};
+    for (const [k, v] of Object.entries(_reactions)) {
+        if (Object.keys(v).length) reactionMap['reactions-' + k] = v;
+    }
+    const wallRxnMap = {};
+    for (const [k, v] of Object.entries(_wallRxns)) {
+        if (Object.keys(v).length) wallRxnMap['wall-reactions-' + k] = v;
+    }
+
+    const backup = {
+        exportedAt: new Date().toISOString(),
+        data: {
+            'public-posts':           _publicPosts,
+            'pending-submissions':    _pending,
+            'anonymous-submissions':  _inbox,
+            'extra-artworks':         _extraArts,
+            'art-overrides':          _overrides,
+            'hidden-art-ids':         _hiddenIds,
+            ...commentMap,
+            ...reactionMap,
+            ...wallRxnMap,
+        }
+    };
+
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
     a.download = `bubbles-gallery-backup-${Date.now()}.json`;
     a.click();
     showToast('Backup downloaded! 💾');
-    checkStorageUsage();
 }
 
 // ═══════════════════════════════════════════════
-// ADMIN: STORAGE WARNING
+// ADMIN: STORAGE WARNING (Supabase — no local limit)
 // ═══════════════════════════════════════════════
 function checkStorageUsage() {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i++)
-        total += (localStorage.getItem(localStorage.key(i)) || '').length;
-    const pct = Math.round((total / 1024 / 5120) * 100);
     const existing = document.querySelector('.storage-warning');
     if (existing) existing.remove();
-    if (pct >= 60) {
-        const el = document.createElement('div');
-        el.className = 'storage-warning';
-        el.innerHTML = `⚠️ Storage ${pct}% full (${Math.round(total/1024)}KB / 5MB). Export a backup and clear old wall posts.`;
-        const body = document.querySelector('.admin-body');
-        if (body) body.prepend(el);
-    }
+    // Data is now stored in Supabase — no localStorage size limit to worry about.
 }
