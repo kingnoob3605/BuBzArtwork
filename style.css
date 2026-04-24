@@ -4474,3 +4474,182 @@ body.modal-open { overflow: hidden; touch-action: none; }
     flex-shrink: 0;
     margin-top: 1px;
 }
+
+/* =============================================
+   POLL CARD
+   ============================================= */
+.poll-card { border-left: 3px solid var(--accent); }
+
+.wall-card-poll { padding: 4px 0 0; }
+
+.poll-question {
+    font-family: var(--font-hand);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.poll-options {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 8px;
+}
+
+.poll-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.88rem;
+    cursor: pointer;
+    overflow: hidden;
+    text-align: left;
+    transition: border-color 0.15s;
+    width: 100%;
+}
+.poll-option:not(:disabled):hover { border-color: var(--accent); }
+.poll-option:disabled { cursor: default; }
+.poll-option.my-vote { border-color: var(--accent); font-weight: 700; }
+
+.poll-bar {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 9px;
+    transition: width 0.4s ease;
+    pointer-events: none;
+}
+
+.poll-opt-text { position: relative; flex: 1; }
+.poll-opt-pct  { position: relative; font-size: 0.78rem; color: color-mix(in srgb, var(--fg) 70%, transparent); }
+
+.poll-total {
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--fg) 60%, transparent);
+    text-align: right;
+}
+
+/* Admin poll option inputs */
+.poll-opt-input {
+    display: block;
+    width: 100%;
+    margin-bottom: 7px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    box-sizing: border-box;
+}
+.poll-opt-input:focus { outline: none; border-color: var(--accent); }
+
+/* =============================================
+   WALL REPLY THREAD
+   ============================================= */
+.wall-replies {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 4px;
+    padding-left: 8px;
+    border-left: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.wall-reply {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    color: var(--fg);
+}
+
+.reply-sender {
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.reply-text { flex: 1; word-break: break-word; }
+
+.reply-del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.78rem;
+    opacity: 0.5;
+    padding: 0 2px;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+}
+.reply-del-btn:hover { opacity: 1; }
+
+.reply-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 2px 0;
+    font-family: var(--font-body);
+    opacity: 0.8;
+    transition: opacity 0.15s;
+}
+.reply-toggle-btn:hover { opacity: 1; }
+
+.reply-input-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    align-items: center;
+}
+
+.reply-input-row input {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.82rem;
+    font-family: var(--font-body);
+    min-width: 0;
+}
+.reply-input-row input:focus { outline: none; border-color: var(--accent); }
+
+.reply-send-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: opacity 0.15s;
+    white-space: nowrap;
+}
+.reply-send-btn:hover { opacity: 0.85; }
+
+.reply-cancel-btn {
+    background: none;
+    border: 1.5px solid var(--card-border);
+    border-radius: 20px;
+    padding: 4px 9px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--fg);
+    transition: border-color 0.15s;
+}
+.reply-cancel-btn:hover { border-color: var(--accent); }
