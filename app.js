@@ -1476,10 +1476,9 @@ function onLogoClick() {
 function openAdminPrompt() {
   const prompt = document.getElementById("admin-password-prompt");
   prompt.classList.remove("hidden");
-  document.getElementById("pw-email").value = "";
   document.getElementById("pw-input").value = "";
   document.getElementById("pw-error").textContent = "";
-  setTimeout(() => document.getElementById("pw-email").focus(), 50);
+  setTimeout(() => document.getElementById("pw-input").focus(), 50);
 }
 
 function closeAdminPrompt() {
@@ -1487,12 +1486,10 @@ function closeAdminPrompt() {
 }
 
 async function submitPassword() {
-  const email = document.getElementById("pw-email").value.trim();
   const val   = document.getElementById("pw-input").value;
   const errEl = document.getElementById("pw-error");
-  if (!email) { errEl.textContent = "Enter your email!"; return; }
   errEl.textContent = "Checking…";
-  const { data, error } = await _db.auth.signInWithPassword({ email, password: val });
+  const { data, error } = await _db.auth.signInWithPassword({ email: ADMIN_EMAIL, password: val });
   if (error || !data.user) {
     errEl.textContent = "Wrong email or password!";
     document.getElementById("pw-input").value = "";
