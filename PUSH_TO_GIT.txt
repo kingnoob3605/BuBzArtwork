@@ -130,7 +130,7 @@
   SUPABASE ADMIN UUID
 =============================================
 
-  Your admin UUID: 6e50a426-b59e-4802-88a7-04b0456e4ff4
+  Your admin UUID: 63d0c758-2da2-485c-9bbb-1892b61dbf16
   (used in RLS policies — do not lose this)
 
 =============================================
