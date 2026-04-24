@@ -1754,7 +1754,7 @@ async function saveArtEdit(artId) {
   showToast("Artwork updated! ✨");
 }
 
-// ── Imgur upload ───────────────────────────────
+// ── Cloudinary upload ──────────────────────────
 async function handleImgurUpload(input) {
     const status = document.getElementById('imgur-upload-status');
     const files = Array.from(input.files);
@@ -1763,17 +1763,17 @@ async function handleImgurUpload(input) {
     const urls = [];
     for (const file of files) {
         const fd = new FormData();
-        fd.append('reqtype', 'fileupload');
-        fd.append('fileToUpload', file);
+        fd.append('file', file);
+        fd.append('upload_preset', CLOUDINARY_PRESET);
         try {
-            const res = await fetch('https://catbox.moe/user/api.php', {
-                method: 'POST',
-                body: fd,
-            });
+            const res = await fetch(
+                `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+                { method: 'POST', body: fd }
+            );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const url = (await res.text()).trim();
-            if (url.startsWith('http')) urls.push(url);
-            else throw new Error(url || 'Upload failed');
+            const json = await res.json();
+            if (json.secure_url) urls.push(json.secure_url);
+            else throw new Error(json.error?.message || 'Upload failed');
         } catch (e) {
             status.textContent = '❌ Upload failed: ' + e.message;
             return;
