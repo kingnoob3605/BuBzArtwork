@@ -1759,24 +1759,21 @@ async function handleImgurUpload(input) {
     const status = document.getElementById('imgur-upload-status');
     const files = Array.from(input.files);
     if (!files.length) return;
-    if (!window.IMGUR_CLIENT_ID) {
-        showToast('Add IMGUR_CLIENT_ID to keys.js to enable uploads!');
-        return;
-    }
     status.textContent = `Uploading ${files.length} image(s)…`;
     const urls = [];
     for (const file of files) {
         const fd = new FormData();
-        fd.append('image', file);
+        fd.append('reqtype', 'fileupload');
+        fd.append('fileToUpload', file);
         try {
-            const res = await fetch('https://api.imgur.com/3/image', {
+            const res = await fetch('https://catbox.moe/user/api.php', {
                 method: 'POST',
-                headers: { Authorization: `Client-ID ${window.IMGUR_CLIENT_ID}` },
                 body: fd,
             });
-            const json = await res.json();
-            if (json.success) urls.push(json.data.link);
-            else throw new Error(json.data?.error || 'Upload failed');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const url = (await res.text()).trim();
+            if (url.startsWith('http')) urls.push(url);
+            else throw new Error(url || 'Upload failed');
         } catch (e) {
             status.textContent = '❌ Upload failed: ' + e.message;
             return;
