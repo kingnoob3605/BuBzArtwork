@@ -1073,6 +1073,25 @@ nav {
     margin-top: 0.25rem;
 }
 
+.comment-input-meta {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.2rem 0.1rem 0;
+}
+
+.comment-char-counter {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    opacity: 0.6;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+.comment-char-counter.over {
+    color: #e05050;
+    opacity: 1;
+    font-weight: 600;
+}
+
 .comment-input {
     flex: 1;
     background: var(--bg2);

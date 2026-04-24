@@ -12,16 +12,25 @@
     />
 
     <!-- SEO / Social sharing -->
-    <meta name="description" content="Bubbles' art gallery — SFW and NSFW art, drawings, and more. Send me a message or drawing!" />
+    <meta
+      name="description"
+      content="Bubbles' art gallery — SFW and NSFW art, drawings, and more. Send me a message or drawing!"
+    />
     <meta name="author" content="Bubbles" />
     <link rel="canonical" href="https://bubz-artwork.vercel.app/" />
 
     <!-- Open Graph (Discord, Facebook, etc.) -->
     <meta property="og:title" content="✦ Bubbles' Gallery ✦" />
-    <meta property="og:description" content="SFW and NSFW art gallery by Bubbles. Look around and leave me something!" />
+    <meta
+      property="og:description"
+      content="SFW and NSFW art gallery by Bubbles. Look around and leave me something!"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bubz-artwork.vercel.app/" />
-    <meta property="og:image" content="https://bubz-artwork.vercel.app/preview.jpg" />
+    <meta
+      property="og:image"
+      content="https://bubz-artwork.vercel.app/preview.jpg"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="Bubbles' Gallery" />
@@ -29,8 +38,14 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="✦ Bubbles' Gallery ✦" />
-    <meta name="twitter:description" content="SFW and NSFW art gallery by Bubbles. Look around and leave me something!" />
-    <meta name="twitter:image" content="https://bubz-artwork.vercel.app/preview.jpg" />
+    <meta
+      name="twitter:description"
+      content="SFW and NSFW art gallery by Bubbles. Look around and leave me something!"
+    />
+    <meta
+      name="twitter:image"
+      content="https://bubz-artwork.vercel.app/preview.jpg"
+    />
 
     <meta name="theme-color" content="#34073d" />
     <link rel="manifest" href="manifest.json" />
@@ -88,7 +103,7 @@
      HEADER
      ============================================= -->
     <header id="header">
-      <div class="logo" id="logo-text">✦ Gallery ✦</div>
+      <div class="logo" id="logo-text">✦ BubzArtZone ✦</div>
       <nav>
         <button
           class="nav-btn active"
@@ -133,7 +148,11 @@
           <div class="tag-filter-label">Filter by tag</div>
           <div class="tag-chips" id="tag-chips"></div>
           <div class="gallery-sort-wrap">
-            <select class="gallery-sort-select" id="gallery-sort" onchange="setSortOrder(this.value)">
+            <select
+              class="gallery-sort-select"
+              id="gallery-sort"
+              onchange="setSortOrder(this.value)"
+            >
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
               <option value="az">A–Z</option>
@@ -151,14 +170,18 @@
           <div class="send-header-deco">✦ &nbsp; ✦ &nbsp; ✦</div>
           <h2>Send Me Art</h2>
           <p>
-            Draw something cute or leave me a message, you choose if you want
-            to sign it!
+            Draw something cute or leave me a message, you choose if you want to
+            sign it!
           </p>
         </div>
 
         <div class="send-notice">
           <span class="send-notice-icon">📬</span>
-          <span>Everything you send is reviewed by me before it goes anywhere. Public posts need my approval to appear on the Wall, private ones go straight to my inbox only. Be kind!</span>
+          <span
+            >Everything you send is reviewed by me before it goes anywhere.
+            Public posts need my approval to appear on the Wall, private ones go
+            straight to my inbox only. Be kind!</span
+          >
         </div>
 
         <div class="send-card">
@@ -182,44 +205,73 @@
 
           <!-- Draw tab -->
           <div class="send-tab-content active" id="send-tab-draw">
-
             <!-- Draw mode switcher -->
             <div class="draw-mode-tabs">
-              <button class="draw-mode-btn active" id="dmt-simple" onclick="setDrawMode('simple')">🖌️ Simple Draw</button>
-              <button class="draw-mode-btn" id="dmt-wiggly" onclick="setDrawMode('wiggly')">🌀 WigglyPaint</button>
+              <button
+                class="draw-mode-btn active"
+                id="dmt-simple"
+                onclick="setDrawMode('simple')"
+              >
+                🖌️ Simple Draw
+              </button>
+              <button
+                class="draw-mode-btn"
+                id="dmt-wiggly"
+                onclick="setDrawMode('wiggly')"
+              >
+                🌀 WigglyPaint
+              </button>
             </div>
 
             <!-- Simple Draw panel -->
             <div id="draw-mode-simple">
-            <div class="canvas-wrap">
-              <div class="canvas-controls">
-                <!-- Color picker -->
-                <label class="ctrl-label" title="Brush color">
-                  🎨 <input type="color" id="color-picker" value="#ef745c" />
-                </label>
-                <div class="ctrl-sep"></div>
-                <!-- Brush size -->
-                <label class="ctrl-label" title="Brush size">
-                  <span class="brush-label-text">Size</span>
-                  <input type="range" id="brush-size" min="1" max="40" value="6" />
-                </label>
-                <div class="ctrl-sep"></div>
-                <!-- Tools -->
-                <button class="btn-tool" id="eraser-btn" onclick="toggleEraser(this)" title="Eraser">
-                  🧹 <span class="ctrl-text">Eraser</span>
-                </button>
-                <button class="btn-tool" onclick="clearCanvas()" title="Clear canvas">
-                  ✕ <span class="ctrl-text">Clear</span>
+              <div class="canvas-wrap">
+                <div class="canvas-controls">
+                  <!-- Color picker -->
+                  <label class="ctrl-label" title="Brush color">
+                    🎨 <input type="color" id="color-picker" value="#ef745c" />
+                  </label>
+                  <div class="ctrl-sep"></div>
+                  <!-- Brush size -->
+                  <label class="ctrl-label" title="Brush size">
+                    <span class="brush-label-text">Size</span>
+                    <input
+                      type="range"
+                      id="brush-size"
+                      min="1"
+                      max="40"
+                      value="6"
+                    />
+                  </label>
+                  <div class="ctrl-sep"></div>
+                  <!-- Tools -->
+                  <button
+                    class="btn-tool"
+                    id="eraser-btn"
+                    onclick="toggleEraser(this)"
+                    title="Eraser"
+                  >
+                    🧹 <span class="ctrl-text">Eraser</span>
+                  </button>
+                  <button
+                    class="btn-tool"
+                    onclick="clearCanvas()"
+                    title="Clear canvas"
+                  >
+                    ✕ <span class="ctrl-text">Clear</span>
+                  </button>
+                </div>
+                <canvas id="draw-canvas" width="600" height="400"></canvas>
+                <!-- Mobile fullscreen button — full width, below canvas, mobile only -->
+                <button
+                  class="btn-draw-fullscreen-mobile"
+                  onclick="openMobileDrawPanel()"
+                >
+                  🖌️ Open Fullscreen Canvas
                 </button>
               </div>
-              <canvas id="draw-canvas" width="600" height="400"></canvas>
-              <!-- Mobile fullscreen button — full width, below canvas, mobile only -->
-              <button class="btn-draw-fullscreen-mobile" onclick="openMobileDrawPanel()">
-                🖌️ Open Fullscreen Canvas
-              </button>
             </div>
-
-            </div> <!-- /#draw-mode-simple -->
+            <!-- /#draw-mode-simple -->
 
             <!-- WigglyPaint panel -->
             <div id="draw-mode-wiggly" class="hidden">
@@ -237,10 +289,24 @@
             <div class="visibility-row" id="draw-visibility-row">
               <span class="visibility-label">Post as</span>
               <div class="visibility-toggle">
-                <button class="vis-btn" data-vis="public" onclick="setVisibility('draw','public',this)">🌐 Public</button>
-                <button class="vis-btn active" data-vis="private" onclick="setVisibility('draw','private',this)">🔒 Private</button>
+                <button
+                  class="vis-btn"
+                  data-vis="public"
+                  onclick="setVisibility('draw', 'public', this)"
+                >
+                  🌐 Public
+                </button>
+                <button
+                  class="vis-btn active"
+                  data-vis="private"
+                  onclick="setVisibility('draw', 'private', this)"
+                >
+                  🔒 Private
+                </button>
               </div>
-              <span class="vis-hint" id="draw-vis-hint">Only you (admin) can see this</span>
+              <span class="vis-hint" id="draw-vis-hint"
+                >Only you (admin) can see this</span
+              >
             </div>
 
             <div class="send-bottom">
@@ -270,11 +336,14 @@
                   maxlength="50"
                 />
               </div>
-              <button class="btn-send" id="draw-send-btn" onclick="sendCurrentDrawing()">
+              <button
+                class="btn-send"
+                id="draw-send-btn"
+                onclick="sendCurrentDrawing()"
+              >
                 Send Drawing ✨
               </button>
             </div>
-
           </div>
 
           <!-- Message tab -->
@@ -288,10 +357,24 @@
             <div class="visibility-row" id="message-visibility-row">
               <span class="visibility-label">Post as</span>
               <div class="visibility-toggle">
-                <button class="vis-btn" data-vis="public" onclick="setVisibility('message','public',this)">🌐 Public</button>
-                <button class="vis-btn active" data-vis="private" onclick="setVisibility('message','private',this)">🔒 Private</button>
+                <button
+                  class="vis-btn"
+                  data-vis="public"
+                  onclick="setVisibility('message', 'public', this)"
+                >
+                  🌐 Public
+                </button>
+                <button
+                  class="vis-btn active"
+                  data-vis="private"
+                  onclick="setVisibility('message', 'private', this)"
+                >
+                  🔒 Private
+                </button>
               </div>
-              <span class="vis-hint" id="message-vis-hint">Only you (admin) can see this</span>
+              <span class="vis-hint" id="message-vis-hint"
+                >Only you (admin) can see this</span
+              >
             </div>
 
             <div class="send-bottom">
@@ -334,12 +417,20 @@
         <div class="wall-page-header">
           <div class="send-header-deco">✦ &nbsp; ✦ &nbsp; ✦</div>
           <h2>Community Wall</h2>
-          <p>Public posts from visitors, drawings and messages left for Bubs!</p>
+          <p>
+            Public posts from visitors, drawings and messages left for Bubs!
+          </p>
         </div>
         <div class="wall-filter-bar">
-          <span class="wall-chip active" onclick="setWallFilter('all',this)">All</span>
-          <span class="wall-chip" onclick="setWallFilter('drawing',this)">🎨 Drawings</span>
-          <span class="wall-chip" onclick="setWallFilter('message',this)">💬 Messages</span>
+          <span class="wall-chip active" onclick="setWallFilter('all', this)"
+            >All</span
+          >
+          <span class="wall-chip" onclick="setWallFilter('drawing', this)"
+            >🎨 Drawings</span
+          >
+          <span class="wall-chip" onclick="setWallFilter('message', this)"
+            >💬 Messages</span
+          >
         </div>
         <div id="wall-grid"></div>
       </section>
@@ -435,20 +526,47 @@
           <div class="about-socials">
             <span class="about-socials-label">Find me on</span>
             <div class="about-socials-row">
-              <a class="about-social-btn" href="https://janitorai.com/profiles/affce566-c8d8-489c-9c4a-5fcca26be9a0_profile-of-bubbles-420" target="_blank" rel="noopener">
-                <img src="https://www.google.com/s2/favicons?sz=32&domain=janitorai.com" alt="" />
+              <a
+                class="about-social-btn"
+                href="https://janitorai.com/profiles/affce566-c8d8-489c-9c4a-5fcca26be9a0_profile-of-bubbles-420"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="https://www.google.com/s2/favicons?sz=32&domain=janitorai.com"
+                  alt=""
+                />
                 JanitorAI
               </a>
-              <a class="about-social-btn" href="https://character.ai/profile/Yes_its_bubbles" target="_blank" rel="noopener">
-                <img src="https://www.google.com/s2/favicons?sz=32&domain=character.ai" alt="" />
+              <a
+                class="about-social-btn"
+                href="https://character.ai/profile/Yes_its_bubbles"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="https://www.google.com/s2/favicons?sz=32&domain=character.ai"
+                  alt=""
+                />
                 Character.AI
               </a>
               <button class="about-social-btn" onclick="showXPopup()">
-                <img src="https://www.google.com/s2/favicons?sz=32&domain=x.com" alt="" />
+                <img
+                  src="https://www.google.com/s2/favicons?sz=32&domain=x.com"
+                  alt=""
+                />
                 X / Twitter
               </button>
-              <a class="about-social-btn" href="https://fictionlab.ai/user/019ce724-2d34-70f1-80f9-d77d76455902" target="_blank" rel="noopener">
-                <img src="https://www.google.com/s2/favicons?sz=32&domain=fictionlab.ai" alt="" />
+              <a
+                class="about-social-btn"
+                href="https://fictionlab.ai/user/019ce724-2d34-70f1-80f9-d77d76455902"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="https://www.google.com/s2/favicons?sz=32&domain=fictionlab.ai"
+                  alt=""
+                />
                 FictionLab
               </a>
             </div>
@@ -490,7 +608,11 @@
 
         <!-- Image -->
         <div class="lightbox-img-wrap">
-          <img id="lb-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          <img
+            id="lb-img"
+            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>"
+            alt=""
+          />
         </div>
 
         <!-- Info panel -->
@@ -520,9 +642,13 @@
                 class="comment-input"
                 placeholder="Leave a comment… (anonymous)"
                 onkeydown="onCommentKeydown(event)"
-                maxlength="500"
+                oninput="updateCommentCounter(this)"
+                maxlength="300"
               />
               <button class="btn-post" onclick="postComment()">Post</button>
+            </div>
+            <div class="comment-input-meta">
+              <span id="comment-char-counter" class="comment-char-counter">0/300</span>
             </div>
           </div>
         </div>
@@ -568,19 +694,41 @@
 
         <!-- Tabs -->
         <div class="admin-tabs">
-          <button class="admin-tab-btn" data-tab="add-art" onclick="showAdminTab('add-art')">
+          <button
+            class="admin-tab-btn"
+            data-tab="add-art"
+            onclick="showAdminTab('add-art')"
+          >
             ➕ Add Art
           </button>
-          <button class="admin-tab-btn" data-tab="my-art" onclick="showAdminTab('my-art')">
+          <button
+            class="admin-tab-btn"
+            data-tab="my-art"
+            onclick="showAdminTab('my-art')"
+          >
             🖼️ My Art
           </button>
-          <button class="admin-tab-btn" data-tab="pending" onclick="showAdminTab('pending')">
+          <button
+            class="admin-tab-btn"
+            data-tab="pending"
+            onclick="showAdminTab('pending')"
+          >
             ⏳ Pending<span class="admin-tab-badge" id="pending-badge"></span>
           </button>
-          <button class="admin-tab-btn" data-tab="submissions" onclick="showAdminTab('submissions')">
+          <button
+            class="admin-tab-btn"
+            data-tab="submissions"
+            onclick="showAdminTab('submissions')"
+          >
             📬 Inbox
           </button>
-          <button class="admin-export-btn" onclick="exportData()" title="Download all data as JSON backup">💾 Export</button>
+          <button
+            class="admin-export-btn"
+            onclick="exportData()"
+            title="Download all data as JSON backup"
+          >
+            💾 Export
+          </button>
         </div>
 
         <!-- Body -->
@@ -594,7 +742,10 @@
               </div>
               <div class="form-group">
                 <label for="new-desc">Description</label>
-                <textarea id="new-desc" placeholder="Tell us about this piece…"></textarea>
+                <textarea
+                  id="new-desc"
+                  placeholder="Tell us about this piece…"
+                ></textarea>
               </div>
               <div class="form-group">
                 <label for="new-image">Image URL *</label>
@@ -602,12 +753,18 @@
               </div>
               <div class="form-group">
                 <label for="new-tags">Tags (comma separated)</label>
-                <input type="text" id="new-tags" placeholder="digital, character, fanart" />
+                <input
+                  type="text"
+                  id="new-tags"
+                  placeholder="digital, character, fanart"
+                />
               </div>
               <label class="form-checkbox-row">
                 <input type="checkbox" id="new-nsfw" /> Mark as NSFW
               </label>
-              <button class="btn-submit" onclick="submitNewArt()">Add to Gallery ✨</button>
+              <button class="btn-submit" onclick="submitNewArt()">
+                Add to Gallery ✨
+              </button>
             </div>
           </div>
 
@@ -630,29 +787,56 @@
     </div>
 
     <!-- Back to top -->
-    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">▲</button>
+    <button
+      class="back-to-top"
+      id="back-to-top"
+      onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      title="Back to top"
+    >
+      ▲
+    </button>
 
     <!-- Mobile Draw Panel (fullscreen canvas for mobile) -->
     <div class="mobile-draw-panel hidden" id="mobile-draw-panel">
       <div class="mdb-header">
-        <button class="mdb-btn-close" onclick="closeMobileDrawPanel()">✕</button>
+        <button class="mdb-btn-close" onclick="closeMobileDrawPanel()">
+          ✕
+        </button>
         <div class="mdb-title">Draw ✦</div>
-        <button class="mdb-btn-save" onclick="submitMobileDrawing()">Send ✨</button>
+        <button class="mdb-btn-save" onclick="submitMobileDrawing()">
+          Send ✨
+        </button>
       </div>
       <canvas id="mobile-draw-canvas"></canvas>
       <div class="mdb-toolbar">
         <div class="mdb-group mdb-color-wrap">
-          <input type="color" id="mdb-color" value="#ef745c">
+          <input type="color" id="mdb-color" value="#ef745c" />
         </div>
         <div class="mdb-sep"></div>
         <div class="mdb-group">
           <span class="mdb-size-dot" id="mdb-size-dot"></span>
-          <input type="range" class="mdb-size" id="mdb-size" min="1" max="40" value="6">
+          <input
+            type="range"
+            class="mdb-size"
+            id="mdb-size"
+            min="1"
+            max="40"
+            value="6"
+          />
         </div>
         <div class="mdb-sep"></div>
         <div class="mdb-group">
-          <button class="mdb-tool" id="mdb-eraser-btn" onclick="toggleMobileEraser(this)" title="Eraser">🧹</button>
-          <button class="mdb-tool" onclick="clearMobileCanvas()" title="Clear">✕</button>
+          <button
+            class="mdb-tool"
+            id="mdb-eraser-btn"
+            onclick="toggleMobileEraser(this)"
+            title="Eraser"
+          >
+            🧹
+          </button>
+          <button class="mdb-tool" onclick="clearMobileCanvas()" title="Clear">
+            ✕
+          </button>
         </div>
       </div>
     </div>
@@ -669,10 +853,10 @@
 
     <!-- Vercel Analytics (gated to deployed host; avoids 404 in preview) -->
     <script>
-      if (location.hostname.endsWith('vercel.app')) {
-        var s = document.createElement('script');
+      if (location.hostname.endsWith("vercel.app")) {
+        var s = document.createElement("script");
         s.defer = true;
-        s.src = '/_vercel/insights/script.js';
+        s.src = "/_vercel/insights/script.js";
         document.body.appendChild(s);
       }
     </script>

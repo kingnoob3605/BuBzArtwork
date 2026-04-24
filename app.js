@@ -590,9 +590,17 @@ function postComment() {
     const text = input.value.trim();
     if (!text) return;
 
+    if (text.length > COMMENT_MAX_CHARS) {
+        showToast(`Comments must be ${COMMENT_MAX_CHARS} characters or less! ✏️`);
+        return;
+    }
+
+    if (!checkCommentCooldown()) return;
+
     if (isBanned(text)) {
         showSassyBannedPopup();
         input.value = '';
+        updateCommentCounter(input);
         return;
     }
 
@@ -600,7 +608,16 @@ function postComment() {
     comments.push({ text, date: new Date().toISOString() });
     saveComments(currentArtwork.id, comments);
     input.value = '';
+    updateCommentCounter(input);
     renderComments(currentArtwork.id);
+}
+
+function updateCommentCounter(input) {
+    const counter = document.getElementById('comment-char-counter');
+    if (!counter) return;
+    const len = input.value.length;
+    counter.textContent = `${len}/${COMMENT_MAX_CHARS}`;
+    counter.classList.toggle('over', len > COMMENT_MAX_CHARS);
 }
 
 function onCommentKeydown(e) {
@@ -945,18 +962,38 @@ function safeCanvasDataUrl(canvas) {
     return dataUrl;
 }
 
-let _lastSubmitTime = 0;
-const SUBMIT_COOLDOWN_MS = 30000; // 30 seconds between submissions
+// ─── Submission cooldown: 1 per day (localStorage so it survives refresh) ───
+const SUBMIT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SUBMIT_COOLDOWN_KEY = 'last-submit-ts';
 
 function checkSubmitCooldown() {
-    const now = Date.now();
-    const diff = now - _lastSubmitTime;
-    if (_lastSubmitTime && diff < SUBMIT_COOLDOWN_MS) {
-        const secs = Math.ceil((SUBMIT_COOLDOWN_MS - diff) / 1000);
-        showToast(`Please wait ${secs}s before submitting again! ⏳`);
+    const last = parseInt(localStorage.getItem(SUBMIT_COOLDOWN_KEY) || '0', 10);
+    const diff = Date.now() - last;
+    if (last && diff < SUBMIT_COOLDOWN_MS) {
+        const hrs  = Math.floor((SUBMIT_COOLDOWN_MS - diff) / 3600000);
+        const mins = Math.ceil(((SUBMIT_COOLDOWN_MS - diff) % 3600000) / 60000);
+        const msg  = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} minute${mins !== 1 ? 's' : ''}`;
+        showToast(`You already sent something today! Come back in ${msg} ⏳`);
         return false;
     }
-    _lastSubmitTime = now;
+    localStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now()));
+    return true;
+}
+
+// ─── Comment cooldown: 60 seconds (in-memory, resets on refresh) ─────────
+let _lastCommentTime = 0;
+const COMMENT_COOLDOWN_MS = 60000;
+const COMMENT_MAX_CHARS = 300;
+
+function checkCommentCooldown() {
+    const now  = Date.now();
+    const diff = now - _lastCommentTime;
+    if (_lastCommentTime && diff < COMMENT_COOLDOWN_MS) {
+        const secs = Math.ceil((COMMENT_COOLDOWN_MS - diff) / 1000);
+        showToast(`Please wait ${secs}s before commenting again! ⏳`);
+        return false;
+    }
+    _lastCommentTime = now;
     return true;
 }
 
