@@ -977,48 +977,213 @@ function renderWallReactions(postId) {
   container.innerHTML = buildWallReactionsHtml(postId);
 }
 
+function buildPollHtml(post) {
+    let pollData;
+    try { pollData = JSON.parse(post.data); } catch { return '<p>Invalid poll data.</p>'; }
+    const votes    = getPollVotes(post.id);
+    const total    = Object.values(votes).reduce((a, b) => a + b, 0);
+    const voted    = hasUserVoted(post.id);
+    const userVote = getUserVoteIdx(post.id);
+    const opts     = (pollData.options || []).map((opt, i) => {
+        const count = votes[String(i)] || 0;
+        const pct   = total > 0 ? Math.round((count / total) * 100) : 0;
+        const isMe  = voted && userVote === i;
+        return `<button class="poll-option${isMe ? ' my-vote' : ''}" onclick="votePoll('${post.id}',${i})" ${voted ? 'disabled' : ''}>
+            <div class="poll-bar" style="width:${voted ? pct : 0}%"></div>
+            <span class="poll-opt-text">${escHtml(opt)}</span>
+            ${voted ? `<span class="poll-opt-pct">${pct}%</span>` : ''}
+        </button>`;
+    }).join('');
+    return `<div class="poll-question">${escHtml(pollData.question)}</div>
+            <div class="poll-options">${opts}</div>
+            <div class="poll-total">${total} vote${total !== 1 ? 's' : ''}${voted ? ' · You voted!' : ' · Tap to vote'}</div>`;
+}
+
+function buildRepliesHtml(postId) {
+    const replies = getReplies(postId);
+    if (!replies.length) return '';
+    return replies.map(r => `
+        <div class="wall-reply" data-reply-id="${r.id}">
+            <span class="reply-sender">${r.sender ? escHtml(r.sender) : '🙈 Anon'}</span>
+            <span class="reply-text">${escHtml(r.text)}</span>
+            <span class="reply-date">${escHtml(formatCommentDate(r.timestamp))}</span>
+            ${adminLoggedIn ? `<button class="reply-del-btn" onclick="deleteReply('${r.id}')">🗑</button>` : ''}
+        </div>`).join('');
+}
+
 function renderWall() {
-  const grid = document.getElementById("wall-grid");
-  if (!grid) return;
-  let posts = getPublicPosts().slice().reverse();
-  if (wallFilter !== "all") posts = posts.filter((p) => p.type === wallFilter);
+    const grid = document.getElementById("wall-grid");
+    if (!grid) return;
+    let posts = getPublicPosts().slice().reverse();
+    if (wallFilter === 'drawing' || wallFilter === 'message') posts = posts.filter(p => p.type === wallFilter);
+    if (wallFilter === 'poll') posts = posts.filter(p => p.type === 'poll');
 
-  if (posts.length === 0) {
-    grid.innerHTML =
-      '<div class="wall-empty"><span>🌸</span><p>No public posts yet! Be the first to share something! ✨</p></div>';
-    return;
-  }
+    if (!posts.length) {
+        grid.innerHTML = '<div class="wall-empty"><span>🌸</span><p>No public posts yet! Be the first to share something! ✨</p></div>';
+        return;
+    }
 
-  grid.innerHTML = posts
-    .map((post) => {
-      const sender = post.sender
-        ? `<span class="wall-sender">✏️ ${escHtml(post.sender)}</span>`
-        : `<span class="wall-sender anon">🙈 Anonymous</span>`;
-      const date = formatCommentDate(post.timestamp);
-      const reactionsHtml = buildWallReactionsHtml(post.id);
+    grid.innerHTML = posts.map(post => {
+        const sender = post.sender
+            ? `<span class="wall-sender">✏️ ${escHtml(post.sender)}</span>`
+            : `<span class="wall-sender anon">🙈 Anonymous</span>`;
+        const date = formatCommentDate(post.timestamp);
+        const reactionsHtml = buildWallReactionsHtml(post.id);
+        const repliesHtml   = buildRepliesHtml(post.id);
+        const replyCount    = getReplies(post.id).length;
 
-      const footer = `<div class="wall-card-footer">
-                    <span class="wall-type-badge">${post.type === "drawing" ? "🎨 Drawing" : "💬 Message"}</span>
-                    ${sender}
-                    <span class="wall-date">${escHtml(date)}</span>
-                </div>
-                <div class="wall-reactions-row" id="wall-reactions-${post.id}">
-                    ${reactionsHtml}
-                </div>`;
+        const footer = `<div class="wall-card-footer">
+            <span class="wall-type-badge">${post.type === 'drawing' ? '🎨 Drawing' : post.type === 'poll' ? '📊 Poll' : '💬 Message'}</span>
+            ${post.type !== 'poll' ? sender : ''}
+            <span class="wall-date">${escHtml(date)}</span>
+            ${adminLoggedIn ? `<button class="wall-del-btn" onclick="deletePublicPost('${post.id}')">🗑</button>` : ''}
+        </div>
+        <div class="wall-reactions-row" id="wall-reactions-${post.id}">${reactionsHtml}</div>
+        <div class="wall-replies-wrap">
+            <div class="wall-replies" id="replies-${post.id}">${repliesHtml}</div>
+            <div class="reply-input-row" id="reply-row-${post.id}" style="display:none">
+                <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
+                    onkeydown="if(event.key==='Enter')postReply('${post.id}')">
+                <select class="reply-anon-sel" id="reply-anon-${post.id}">
+                    <option value="">🙈 Anon</option>
+                    <option value="__named__">✏️ Named…</option>
+                </select>
+                <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name" style="display:none" maxlength="40">
+                <button class="reply-send-btn" onclick="postReply('${post.id}')">Send</button>
+                <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕</button>
+            </div>
+            <button class="reply-toggle-btn" onclick="toggleReplyInput('${post.id}')">
+                ↩ ${replyCount > 0 ? replyCount + ' Repl' + (replyCount === 1 ? 'y' : 'ies') : 'Reply'}
+            </button>
+        </div>`;
 
-      if (post.type === "drawing") {
-        return `<div class="wall-card">
+        if (post.type === 'poll') {
+            return `<div class="wall-card poll-card">
+                <div class="wall-card-poll">${buildPollHtml(post)}</div>
+                ${footer}
+            </div>`;
+        } else if (post.type === 'drawing') {
+            return `<div class="wall-card">
                 <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
                 ${footer}
             </div>`;
-      } else {
-        return `<div class="wall-card">
+        } else {
+            return `<div class="wall-card">
                 <div class="wall-card-text">${escHtml(post.data)}</div>
                 ${footer}
             </div>`;
-      }
-    })
-    .join("");
+        }
+    }).join('');
+}
+
+// ── Reply functions ────────────────────────────
+function toggleReplyInput(postId) {
+    const row  = document.getElementById('reply-row-' + postId);
+    const isOpen = row.style.display !== 'none';
+    row.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) document.getElementById('reply-input-' + postId)?.focus();
+}
+
+document.addEventListener('change', e => {
+    if (!e.target.classList.contains('reply-anon-sel')) return;
+    const postId = e.target.id.replace('reply-anon-', '');
+    const nameInput = document.getElementById('reply-name-' + postId);
+    if (nameInput) nameInput.style.display = e.target.value === '__named__' ? 'block' : 'none';
+});
+
+async function postReply(postId) {
+    const input  = document.getElementById('reply-input-' + postId);
+    const text   = input?.value.trim();
+    if (!text) return;
+    if (isBanned(text)) { showSassyBannedPopup(); input.value = ''; return; }
+
+    const sel    = document.getElementById('reply-anon-' + postId);
+    const named  = sel?.value === '__named__';
+    const name   = named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null;
+
+    await dbAddReply(postId, text, name);
+    input.value = '';
+    // Refresh replies in-place
+    const repliesEl = document.getElementById('replies-' + postId);
+    if (repliesEl) repliesEl.innerHTML = buildRepliesHtml(postId);
+    // Update reply button count
+    const toggleBtn = repliesEl?.closest('.wall-replies-wrap')?.querySelector('.reply-toggle-btn');
+    if (toggleBtn) {
+        const count = getReplies(postId).length;
+        toggleBtn.textContent = `↩ ${count} Repl${count === 1 ? 'y' : 'ies'}`;
+    }
+}
+
+async function deleteReply(replyId) {
+    if (!confirm('Delete this reply?')) return;
+    await dbDeleteReply(replyId);
+    // Find and remove from DOM
+    const el = document.querySelector(`[data-reply-id="${replyId}"]`);
+    if (el) el.remove();
+}
+
+// ── Poll functions ─────────────────────────────
+async function votePoll(postId, optionIdx) {
+    const voted = await dbVotePoll(postId, optionIdx);
+    if (!voted) return; // already voted
+    // Re-render just the poll card content
+    const post = getPublicPosts().find(p => p.id === postId);
+    if (!post) return;
+    const pollWrap = document.querySelector(`#wall-grid .poll-card .wall-card-poll`);
+    // Find the right card
+    document.querySelectorAll('.poll-card').forEach(card => {
+        const delBtn = card.querySelector(`[onclick*="${postId}"]`);
+        if (delBtn || card.innerHTML.includes(`votePoll('${postId}'`)) {
+            const wrap = card.querySelector('.wall-card-poll');
+            if (wrap) wrap.innerHTML = buildPollHtml(post);
+        }
+    });
+}
+
+function addPollOption() {
+    const list = document.getElementById('poll-options-list');
+    if (!list) return;
+    if (list.children.length >= 6) return;
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'poll-opt-input';
+    inp.placeholder = `Option ${list.children.length + 1}…`;
+    inp.maxLength = 100;
+    list.appendChild(inp);
+}
+
+async function submitPoll() {
+    const question = (document.getElementById('poll-question')?.value || '').trim();
+    const optInputs = [...document.querySelectorAll('.poll-opt-input')];
+    const options   = optInputs.map(i => i.value.trim()).filter(Boolean);
+    const sender    = (document.getElementById('poll-sender')?.value || '').trim() || 'Bubs';
+    const statusEl  = document.getElementById('poll-status');
+
+    if (!question)          { if (statusEl) statusEl.textContent = '⚠️ Question is required.'; return; }
+    if (options.length < 2) { if (statusEl) statusEl.textContent = '⚠️ Need at least 2 options.'; return; }
+
+    if (statusEl) statusEl.textContent = 'Posting…';
+    const entry = {
+        id: String(Date.now()),
+        type: 'poll',
+        data: JSON.stringify({ question, options }),
+        sender,
+        timestamp: new Date().toISOString(),
+        requestedVis: 'public',
+    };
+    await dbAddPublicPost(entry);
+
+    // Reset form
+    document.getElementById('poll-question').value = '';
+    document.getElementById('poll-sender').value   = '';
+    optInputs.forEach((inp, i) => { inp.value = ''; inp.placeholder = `Option ${i + 1}…`; });
+    // Remove extra options beyond 2
+    const list = document.getElementById('poll-options-list');
+    while (list.children.length > 2) list.removeChild(list.lastChild);
+
+    if (statusEl) statusEl.textContent = '✅ Poll posted!';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+    renderWall();
 }
 
 function buildWallReactionsHtml(postId) {
