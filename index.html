@@ -68,6 +68,14 @@
     <link rel="stylesheet" href="style.css?v=5" />
   </head>
   <body>
+    <!-- Page loader -->
+    <div id="page-loader" class="page-loader hidden">
+      <div class="page-loader-inner">
+        <span class="page-loader-icon">🎨</span>
+        <span class="page-loader-text">Loading gallery…</span>
+      </div>
+    </div>
+
     <!-- =============================================
      AGE GATE
      ============================================= -->
@@ -755,16 +763,20 @@
                 ></textarea>
               </div>
               <div class="form-group">
-                <label>Image *</label>
-                <div class="imgur-upload-wrap">
-                  <label class="imgur-upload-btn" for="imgur-file-input">📁 Upload from device</label>
-                  <input type="file" id="imgur-file-input" accept="image/*" multiple style="display:none" onchange="handleImgurUpload(this)"/>
-                  <span id="imgur-upload-status" class="imgur-status"></span>
+                <label>Images *</label>
+                <div id="art-drop-zone" class="art-drop-zone" onclick="document.getElementById('art-file-input').click()">
+                  <span class="drop-zone-icon">🖼️</span>
+                  <span class="drop-zone-text">Drag images here or <span class="drop-zone-link">click to browse</span></span>
+                  <span class="drop-zone-hint">PNG, JPG, GIF, WEBP · Multiple files OK</span>
                 </div>
-                <div id="batch-url-list">
-                  <input type="url" class="batch-url" placeholder="Or paste image URL…" />
+                <input type="file" id="art-file-input" accept="image/*" multiple style="display:none" onchange="handleArtFileSelect(this)" />
+                <div id="art-preview-grid" class="art-preview-grid"></div>
+                <span id="art-upload-status" class="imgur-status"></span>
+                <div id="batch-url-list" style="display:none"></div>
+                <div class="add-url-row">
+                  <input type="url" class="batch-url-visible" id="paste-url-input" placeholder="Or paste an image URL…" />
+                  <button type="button" class="add-url-btn" onclick="(function(){ const v=document.getElementById('paste-url-input').value.trim(); if(!v) return; const i=document.createElement('input'); i.type='url'; i.className='batch-url'; i.value=v; document.getElementById('batch-url-list').appendChild(i); document.getElementById('paste-url-input').value=''; document.getElementById('art-upload-status').textContent='✅ URL added!'; })()">Add URL</button>
                 </div>
-                <button type="button" class="add-url-btn" onclick="addUrlField()">＋ Add another URL</button>
               </div>
               <div class="form-group">
                 <label for="new-tags">Tags (comma separated)</label>
