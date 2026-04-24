@@ -111,6 +111,8 @@
     }
     .wp-btn.primary:hover { background: #d4785e; border-color: #d4785e; }
 
+    .wp-btn.fs-btn { padding: 5px 8px; font-size: 0.9rem; }
+
     #status {
       font-size: 0.72rem;
       color: #9b72cf;
@@ -179,6 +181,7 @@
     <span id="status"></span>
   </div>
   <div class="action-right">
+    <button class="wp-btn fs-btn" onclick="toggleFullscreen()" id="fs-btn" title="Fullscreen">⛶</button>
     <button class="wp-btn primary" onclick="submitToGallery()">📤 Submit</button>
   </div>
 </div>
@@ -453,6 +456,26 @@ function setStatus(msg) { document.getElementById('status').textContent = msg; }
 // ---- Listen for parent trigger ----
 window.addEventListener('message', e => {
     if (e.data && e.data.type === 'trigger-submit') submitToGallery();
+});
+
+// ---- Fullscreen ----
+function toggleFullscreen() {
+    const btn = document.getElementById('fs-btn');
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        btn.textContent = '✕';
+        btn.title = 'Exit fullscreen';
+    } else {
+        document.exitFullscreen();
+        btn.textContent = '⛶';
+        btn.title = 'Fullscreen';
+    }
+}
+document.addEventListener('fullscreenchange', () => {
+    const btn = document.getElementById('fs-btn');
+    if (!btn) return;
+    btn.textContent = document.fullscreenElement ? '✕' : '⛶';
+    resizeCanvas();
 });
 
 // ---- Init ----

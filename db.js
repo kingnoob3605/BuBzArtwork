@@ -108,6 +108,12 @@ async function dbInit() {
 
     } catch (err) {
         console.error('[db] dbInit failed:', err);
+        // Show visible error so the user knows something is wrong
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#c0392b;color:#fff;padding:10px 18px;border-radius:12px;font-size:0.85rem;z-index:9999';
+        t.textContent = '⚠️ Could not connect to database. Some features may not work.';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 6000);
     }
 }
 

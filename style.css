@@ -2632,6 +2632,77 @@ input[type="range"] {
 .admin-tab-content { display: none; }
 .admin-tab-content.active { display: block; }
 
+/* Imgur upload UI */
+.imgur-upload-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.4rem;
+}
+.imgur-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.9rem;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.imgur-upload-btn:hover { opacity: 0.85; }
+.imgur-status {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-style: italic;
+}
+#batch-url-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.batch-url {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    color: var(--text);
+    font-size: 0.88rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.batch-url:focus { border-color: var(--accent); }
+.add-url-btn {
+    align-self: flex-start;
+    background: none;
+    border: 1.5px dashed var(--border);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+.add-url-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Admin password prompt — email field */
+#pw-email {
+    width: 100%;
+    padding: 0.55rem 0.8rem;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    margin-bottom: 0.4rem;
+}
+#pw-email:focus { border-color: var(--accent); }
+
 /* Add art form */
 .admin-form {
     display: flex;
