@@ -10,6 +10,8 @@
     --bg2: #280530;
     --text: #ffd6cc;
     --text-dim: #c9a0a0;
+    --fg: #ffd6cc;
+    --fg2: #c9a0a0;
     --accent-glow: rgba(239, 116, 92, 0.4);
     --card-border: rgba(239, 116, 92, 0.2);
     --modal-bg: rgba(20, 2, 24, 0.92);
@@ -4656,6 +4658,8 @@ body.modal-open { overflow: hidden; touch-action: none; }
     box-sizing: border-box;
 }
 .reply-input-row input.reply-input:focus { outline: none; border-color: var(--accent); }
+.reply-input-row input.reply-input::placeholder { color: var(--text-dim); opacity: 1; }
+.reply-name-input::placeholder { color: var(--text-dim); opacity: 1; }
 
 .reply-name-input {
     flex: 1;
