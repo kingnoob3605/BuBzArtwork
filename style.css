@@ -4630,7 +4630,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
 .reply-input-top { display: flex; }
@@ -4639,11 +4639,26 @@ body.modal-open { overflow: hidden; touch-action: none; }
     display: flex;
     gap: 6px;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 .reply-input-row input.reply-input {
     flex: 1;
     width: 100%;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.84rem;
+    font-family: var(--font-body);
+    min-width: 0;
+    box-sizing: border-box;
+}
+.reply-input-row input.reply-input:focus { outline: none; border-color: var(--accent); }
+
+.reply-name-input {
+    flex: 1;
     padding: 7px 12px;
     border-radius: 20px;
     border: 1.5px solid var(--card-border);
@@ -4652,46 +4667,41 @@ body.modal-open { overflow: hidden; touch-action: none; }
     font-size: 0.82rem;
     font-family: var(--font-body);
     min-width: 0;
-}
-.reply-input-row input.reply-input:focus { outline: none; border-color: var(--accent); }
-
-.reply-name-input {
-    flex: 1;
-    padding: 5px 10px;
-    border-radius: 20px;
-    border: 1.5px solid var(--card-border);
-    background: var(--card);
-    color: var(--fg);
-    font-size: 0.8rem;
-    font-family: var(--font-body);
-    min-width: 0;
+    box-sizing: border-box;
+    height: 34px;
 }
 .reply-name-input:focus { outline: none; border-color: var(--accent); }
 
 .reply-anon-sel {
-    padding: 5px 8px;
+    padding: 0 10px;
+    height: 34px;
     border-radius: 20px;
     border: 1.5px solid var(--card-border);
     background: var(--card);
     color: var(--fg);
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-family: var(--font-body);
     cursor: pointer;
     flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
 }
 
 .reply-send-btn {
-    padding: 5px 12px;
+    height: 34px;
+    padding: 0 14px;
     border-radius: 20px;
     border: none;
     background: var(--accent);
     color: #fff;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     cursor: pointer;
     font-family: var(--font-body);
     transition: opacity 0.15s;
     white-space: nowrap;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 .reply-send-btn:hover { opacity: 0.85; }
 
@@ -4699,12 +4709,14 @@ body.modal-open { overflow: hidden; touch-action: none; }
     background: none;
     border: 1.5px solid var(--card-border);
     border-radius: 20px;
-    padding: 4px 9px;
-    font-size: 0.8rem;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 0.82rem;
     cursor: pointer;
     color: var(--fg);
     transition: border-color 0.15s;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 .reply-cancel-btn:hover { border-color: var(--accent); }
 
