@@ -1254,19 +1254,17 @@ function buildWallReactionsHtml(postId) {
   );
 }
 
-async function downloadWallImage(url, e) {
+function downloadWallImage(url, e) {
   e.stopPropagation();
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'bubz-drawing.png';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  } catch {
-    showToast('Download failed — try right-clicking the image.');
-  }
+  // Use Cloudinary fl_attachment to force Content-Disposition: attachment
+  const dlUrl = url.includes('cloudinary.com')
+    ? url.replace('/upload/', '/upload/fl_attachment/')
+    : url;
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.click();
 }
 
 function openWallImageOverlay(url) {

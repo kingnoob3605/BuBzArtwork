@@ -1372,12 +1372,14 @@ nav {
         gap: 0.15rem;
     }
     .wall-reaction-btn { font-size: 0.68rem !important; padding: 0.12rem 0.28rem !important; }
-    .reaction-quick-btn { font-size: 0.75rem !important; }
+    .reaction-quick-btn { display: none; }
     .wall-type-badge { font-size: 0.55rem; padding: 0.1rem 0.35rem; }
     .wall-sender { font-size: 0.6rem; }
     .wall-date { display: none; }
     .reply-toggle-btn { font-size: 0.68rem; padding: 0.25rem 0.5rem; }
     .wall-download-btn { font-size: 0.68rem; padding: 0.2rem 0.4rem; }
+    .reply-date { display: none; }
+    .reply-text { font-size: 0.7rem; }
 }
 
 .wall-card {
