@@ -4580,7 +4580,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
     gap: 7px;
     font-size: 0.83rem;
     line-height: 1.45;
-    color: var(--fg);
+    color: var(--paper-ink);
 }
 
 .reply-sender {
@@ -4590,7 +4590,18 @@ body.modal-open { overflow: hidden; touch-action: none; }
     flex-shrink: 0;
 }
 
-.reply-text { flex: 1; word-break: break-word; }
+.reply-text {
+    flex: 1;
+    word-break: break-word;
+    color: var(--paper-ink);
+}
+
+.reply-date {
+    font-size: 0.72rem;
+    color: rgba(0,0,0,0.42);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
 
 .reply-del-btn {
     background: none;
