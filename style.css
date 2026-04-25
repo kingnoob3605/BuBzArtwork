@@ -4928,6 +4928,179 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .poll-opt-input:focus { outline: none; border-color: var(--accent); }
 
 /* =============================================
+   ADMIN WALL MANAGEMENT TAB
+   ============================================= */
+.admin-wall-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.admin-wall-card {
+    background: var(--bg2);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.admin-wall-card:hover { border-color: rgba(239,116,92,0.3); }
+
+.admin-wall-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.02);
+    flex-wrap: wrap;
+}
+
+.admin-wall-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.admin-wall-sender { color: var(--accent); font-weight: 700; }
+.admin-wall-date   { opacity: 0.65; font-family: var(--font-stamp); font-size: 0.68rem; letter-spacing: 0.04em; }
+
+.admin-wall-reply-badge {
+    background: rgba(239,116,92,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(239,116,92,0.25);
+    border-radius: 50px;
+    padding: 0.08rem 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.admin-wall-thumb {
+    display: block;
+    max-width: 100%;
+    max-height: 160px;
+    object-fit: contain;
+    background: var(--bg);
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.admin-wall-preview {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.84rem;
+    color: var(--text);
+    line-height: 1.5;
+    border-bottom: 1px solid var(--card-border);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 80px;
+    overflow: hidden;
+}
+
+/* Collapsible replies */
+.admin-replies-details { }
+.admin-replies-details[open] { }
+
+.admin-replies-summary {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.78rem;
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: background 0.12s;
+}
+.admin-replies-summary::-webkit-details-marker { display: none; }
+.admin-replies-summary::before {
+    content: '▶';
+    font-size: 0.6rem;
+    opacity: 0.6;
+    transition: transform 0.15s;
+}
+.admin-replies-details[open] .admin-replies-summary::before { transform: rotate(90deg); }
+.admin-replies-summary:hover { background: rgba(239,116,92,0.06); }
+
+.admin-replies-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--card-border);
+}
+
+.admin-reply-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.12s;
+}
+.admin-reply-row:hover { background: rgba(255,255,255,0.03); }
+.admin-reply-row:last-child { border-bottom: none; }
+
+.admin-reply-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+}
+
+.admin-reply-sender {
+    color: var(--accent);
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.admin-reply-text {
+    color: var(--text);
+    word-break: break-word;
+    flex: 1;
+}
+
+.admin-reply-date {
+    font-family: var(--font-stamp);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    opacity: 0.55;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.admin-reply-del-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid rgba(220,60,60,0.25);
+    border-radius: 4px;
+    color: rgba(220,80,80,0.6);
+    font-size: 0.68rem;
+    cursor: pointer;
+    padding: 0.15rem 0.4rem;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+    line-height: 1;
+}
+.admin-reply-row:hover .admin-reply-del-btn { opacity: 1; }
+.admin-reply-del-btn:hover { background: rgba(220,60,60,0.2); color: #ff8080; }
+
+.admin-reply-empty {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    opacity: 0.5;
+    font-style: italic;
+}
+
+/* =============================================
    WALL REPLY THREAD
    ============================================= */
 .wall-replies {
