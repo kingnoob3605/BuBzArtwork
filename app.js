@@ -102,6 +102,9 @@ async function init() {
   const aboutTextEl = document.getElementById("about-text");
   if (aboutTextEl) aboutTextEl.textContent = SITE_CONFIG.aboutText;
 
+  // Clear stale submit cooldown so no user gets locked out on load
+  localStorage.removeItem("last-submit-ts");
+
   // Load all data from Supabase into in-memory cache
   showLoader();
   await dbInit();
