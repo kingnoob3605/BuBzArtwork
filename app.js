@@ -1229,18 +1229,43 @@ function buildWallReactionsHtml(postId) {
 
 function downloadWallImage(url, e) {
   if (e) e.stopPropagation();
-  // fl_attachment tells Cloudinary to set Content-Disposition: attachment
-  const dlUrl = url.includes('cloudinary.com')
-    ? url.replace('/upload/', '/upload/fl_attachment/')
-    : url;
-  // Must be in DOM before .click() — detached elements are silently ignored by most browsers
-  const a = document.createElement('a');
-  a.href = dlUrl;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+
+  if (url.includes('cloudinary.com')) {
+    const dlUrl = url.replace('/upload/', '/upload/fl_attachment/');
+    const a = document.createElement('a');
+    a.href = dlUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } else if (url.startsWith('data:')) {
+    // Legacy base64 data URL (pre-Cloudinary wall posts) — must use blob for real download
+    const [header, base64] = url.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const ext = mime === 'image/gif' ? 'gif' : mime === 'image/png' ? 'png' : 'jpg';
+    const bytes = atob(base64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `bubz-drawing.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bubz-drawing.png';
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }
 
 function openWallPost(id) {
