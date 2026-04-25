@@ -1436,15 +1436,16 @@ async function submitDrawing() {
   if (isCanvasBlank(canvas)) { showToast("Draw something first! 🖌️"); return; }
 
   const btn = document.getElementById('draw-send-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
 
-  const entry = {
-    id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    type: "drawing", data: safeCanvasDataUrl(canvas),
-    sender: getSenderName("draw"), timestamp: new Date().toISOString(),
-    requestedVis: getVisibility("draw"),
-  };
   try {
+    const imageUrl = await _cloudinaryUpload(safeCanvasDataUrl(canvas), 'bubz/submissions');
+    const entry = {
+      id: String(Date.now() + Math.floor(Math.random() * 1000)),
+      type: "drawing", data: imageUrl,
+      sender: getSenderName("draw"), timestamp: new Date().toISOString(),
+      requestedVis: getVisibility("draw"),
+    };
     await savePending(entry);
     showToast(entry.requestedVis === "public" ? "Drawing submitted! Waiting for approval 🌐✨" : "Drawing sent privately! 🔒✨ Thank you!");
     clearCanvas();
@@ -1777,6 +1778,26 @@ async function saveArtEdit(artId) {
   showToast("Artwork updated! ✨");
 }
 
+// ── Shared Cloudinary upload helper ──────────────
+// folder: 'bubz/gallery' | 'bubz/gifs' | 'bubz/submissions'
+async function _cloudinaryUpload(fileOrDataUrl, folder) {
+    const fd = new FormData();
+    fd.append('file', fileOrDataUrl);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('folder', folder);
+    const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+        { method: 'POST', body: fd }
+    );
+    if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status}: ${t.slice(0, 120)}`);
+    }
+    const json = await res.json();
+    if (!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
+    return json.secure_url;
+}
+
 // ── Drag-and-drop / file upload to Cloudinary ──
 function initDropZone() {
     const zone = document.getElementById('art-drop-zone');
@@ -1821,37 +1842,12 @@ async function handleArtFiles(files) {
         console.log(`[Cloudinary] Processing file: ${file.name} (${(file.size / 1024).toFixed(2)} KB, type: ${file.type})`);
 
         try {
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('upload_preset', CLOUDINARY_PRESET);
-
-            console.log(`[Cloudinary] Sending POST to https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`);
-
-            const res = await fetch(
-                `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-                { method: 'POST', body: fd }
-            );
-
-            console.log(`[Cloudinary] Response status: ${res.status} ${res.statusText}`);
-
-            if (!res.ok) {
-                const errText = await res.text();
-                console.error(`[Cloudinary] HTTP Error ${res.status}:`, errText);
-                throw new Error(`HTTP ${res.status}: ${errText.substring(0, 100)}`);
-            }
-
-            const json = await res.json();
-            console.log(`[Cloudinary] Response JSON:`, json);
-
-            if (!json.secure_url) {
-                const errMsg = json.error?.message || json.error || 'No secure_url in response';
-                console.error(`[Cloudinary] Upload failed - no secure_url. Error:`, errMsg);
-                throw new Error(errMsg);
-            }
-
-            console.log(`[Cloudinary] ✅ Upload successful: ${json.secure_url}`);
+            const folder = file.type === 'image/gif' ? 'bubz/gifs' : 'bubz/gallery';
+            console.log(`[Cloudinary] Uploading ${file.name} → folder: ${folder}`);
+            const url = await _cloudinaryUpload(file, folder);
+            console.log(`[Cloudinary] ✅ ${url}`);
             const inp = document.createElement('input');
-            inp.type = 'url'; inp.className = 'batch-url'; inp.value = json.secure_url;
+            inp.type = 'url'; inp.className = 'batch-url'; inp.value = url;
             document.getElementById('batch-url-list').appendChild(inp);
             badge.textContent = '✅';
             card.classList.add('done');
@@ -2085,15 +2081,16 @@ window.addEventListener("message", async (e) => {
   if (!checkSubmitCooldown()) return;
   const name = getSenderName("draw");
   const vis = getVisibility("draw");
-  const entry = {
-    id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    type: "drawing",
-    data: dataUrl,
-    sender: name,
-    timestamp: new Date().toISOString(),
-    requestedVis: vis,
-  };
   try {
+    const imageUrl = await _cloudinaryUpload(dataUrl, 'bubz/submissions');
+    const entry = {
+      id: String(Date.now() + Math.floor(Math.random() * 1000)),
+      type: "drawing",
+      data: imageUrl,
+      sender: name,
+      timestamp: new Date().toISOString(),
+      requestedVis: vis,
+    };
     await savePending(entry);
     showToast(vis === "public"
       ? "WigglyPaint submitted! Waiting for approval 🌐✨"
@@ -2213,13 +2210,14 @@ async function submitMobileDrawing() {
   const btn = document.querySelector('.mdb-btn-save');
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
 
-  const submission = {
-    id: String(Date.now() + Math.floor(Math.random() * 1000)),
-    type: "drawing", data: safeCanvasDataUrl(canvas),
-    sender: null, requestedVis: "private",
-    timestamp: new Date().toISOString(),
-  };
   try {
+    const imageUrl = await _cloudinaryUpload(safeCanvasDataUrl(canvas), 'bubz/submissions');
+    const submission = {
+      id: String(Date.now() + Math.floor(Math.random() * 1000)),
+      type: "drawing", data: imageUrl,
+      sender: null, requestedVis: "private",
+      timestamp: new Date().toISOString(),
+    };
     await savePending(submission);
     clearMobileCanvas();
     closeMobileDrawPanel();
