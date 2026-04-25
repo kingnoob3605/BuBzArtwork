@@ -802,6 +802,7 @@ function renderComments(artId) {
 }
 
 async function deleteComment(artId, commentId) {
+  if (!adminLoggedIn) return;
   if (!confirm("Delete this comment?")) return;
   await dbDeleteComment(commentId);
   renderComments(artId);
@@ -1159,6 +1160,7 @@ async function postReply(postId) {
 }
 
 async function deleteReply(replyId) {
+    if (!adminLoggedIn) return;
     if (!confirm('Delete this reply?')) return;
     await dbDeleteReply(replyId);
     // Find and remove from DOM
@@ -1402,12 +1404,14 @@ function closeWallPost() {
 }
 
 async function deletePublicPost(id) {
+  if (!adminLoggedIn) return;
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
   renderWall();
 }
 
 async function deleteWallPostFromLightbox(id) {
+  if (!adminLoggedIn) return;
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
   renderWall();
@@ -1415,6 +1419,7 @@ async function deleteWallPostFromLightbox(id) {
 }
 
 async function deleteWallPostFromAdmin(id) {
+  if (!adminLoggedIn) return;
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
   renderWall();
@@ -2221,6 +2226,7 @@ function renderAdminWall() {
 }
 
 async function adminDeleteReply(replyId, postId) {
+  if (!adminLoggedIn) return;
   if (!confirm('Delete this reply?')) return;
   await dbDeleteReply(replyId);
   const adminRow = document.getElementById(`admin-reply-${replyId}`);
@@ -2240,6 +2246,7 @@ async function adminDeleteReply(replyId, postId) {
 }
 
 async function adminDeleteWallPost(id) {
+  if (!adminLoggedIn) return;
   if (!confirm('Delete this wall post and all its replies?')) return;
   await dbDeletePublicPost(id);
   renderWall();
