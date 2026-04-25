@@ -61,7 +61,7 @@
     />
 
     <!-- Site styles -->
-    <link rel="stylesheet" href="style.css?v=9" />
+    <link rel="stylesheet" href="style.css?v=10" />
   </head>
   <body>
     <!-- Page loader -->
@@ -755,6 +755,13 @@
             📊 Poll
           </button>
           <button
+            class="admin-tab-btn"
+            data-tab="wall"
+            onclick="showAdminTab('wall')"
+          >
+            🗨️ Wall
+          </button>
+          <button
             class="admin-export-btn"
             onclick="exportData()"
             title="Download all data as JSON backup"
@@ -825,6 +832,11 @@
           <!-- Inbox tab (public wall + private approved) -->
           <div class="admin-tab-content" id="admin-tab-submissions">
             <div class="submissions-list" id="submissions-list"></div>
+          </div>
+
+          <!-- Wall Management tab -->
+          <div class="admin-tab-content" id="admin-tab-wall">
+            <div class="admin-wall-list" id="admin-wall-list"></div>
           </div>
 
           <!-- Create Poll tab -->
@@ -919,10 +931,10 @@
 
     <!-- Scripts — data before app -->
     <script src="data.js?v=7"></script>
-    <script src="keys.js?v=9"></script>
-    <script src="db.js?v=9"></script>
-    <script src="app.js?v=9"></script>
-    <script src="mobile-enhance.js?v=9"></script>
+    <script src="keys.js?v=10"></script>
+    <script src="db.js?v=10"></script>
+    <script src="app.js?v=10"></script>
+    <script src="mobile-enhance.js?v=10"></script>
 
     <!-- Vercel Analytics (gated to deployed host; avoids 404 in preview) -->
     <script>

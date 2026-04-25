@@ -1773,6 +1773,7 @@ function showAdminTab(tab) {
   if (tab === "pending") renderPending();
   if (tab === "submissions") renderSubmissions();
   if (tab === "my-art") renderAdminArtList();
+  if (tab === "wall") renderAdminWall();
   updatePendingBadge();
 }
 
@@ -2161,6 +2162,90 @@ function renderPending() {
         </div>`;
     })
     .join("");
+}
+
+// ── Admin Wall Management tab ──────────────────
+function renderAdminWall() {
+  const container = document.getElementById('admin-wall-list');
+  if (!container) return;
+  const posts = getPublicPosts().slice().reverse();
+  if (!posts.length) {
+    container.innerHTML = '<div class="no-submissions">No wall posts yet! 🌸</div>';
+    return;
+  }
+  container.innerHTML = posts.map(post => {
+    const replies = getReplies(post.id);
+    const sender = post.sender ? `✏️ ${escHtml(post.sender)}` : '🙈 Anon';
+    const typeBadge = post.type === 'drawing' ? '🎨 Drawing'
+                    : post.type === 'poll'    ? '📊 Poll' : '💬 Message';
+    let contentHtml = '';
+    if (post.type === 'drawing') {
+      contentHtml = `<img class="admin-wall-thumb" src="${escHtml(post.data)}" alt="Drawing">`;
+    } else if (post.type === 'poll') {
+      let q = '';
+      try { q = (typeof post.data === 'object' ? post.data : JSON.parse(post.data)).question || ''; } catch(e) {}
+      contentHtml = `<div class="admin-wall-preview">📊 ${escHtml(q)}</div>`;
+    } else {
+      const preview = String(post.data || '').substring(0, 140);
+      contentHtml = `<div class="admin-wall-preview">${escHtml(preview)}${post.data.length > 140 ? '…' : ''}</div>`;
+    }
+    const repliesHtml = replies.length
+      ? replies.map(r => `
+          <div class="admin-reply-row" id="admin-reply-${r.id}">
+            <div class="admin-reply-info">
+              <span class="admin-reply-sender">${r.sender ? escHtml(r.sender) : '🙈 Anon'}</span>
+              <span class="admin-reply-text">${escHtml(r.text)}</span>
+              <span class="admin-reply-date">${escHtml(formatCommentDate(r.timestamp))}</span>
+            </div>
+            <button class="admin-reply-del-btn" onclick="adminDeleteReply('${r.id}','${post.id}')" title="Delete reply">✕</button>
+          </div>`).join('')
+      : '<div class="admin-reply-empty">No replies yet</div>';
+    return `
+      <div class="admin-wall-card" id="admin-wall-post-${post.id}">
+        <div class="admin-wall-header">
+          <div class="admin-wall-meta">
+            <span class="submission-type-badge">${typeBadge}</span>
+            <span class="admin-wall-sender">${sender}</span>
+            <span class="admin-wall-date">${escHtml(formatCommentDate(post.timestamp))}</span>
+            ${replies.length ? `<span class="admin-wall-reply-badge">💬 ${replies.length}</span>` : ''}
+          </div>
+          <button class="sub-btn sub-btn-delete" onclick="adminDeleteWallPost('${post.id}')">🗑 Delete Post</button>
+        </div>
+        ${contentHtml}
+        <details class="admin-replies-details">
+          <summary class="admin-replies-summary">↩ ${replies.length} ${replies.length === 1 ? 'Reply' : 'Replies'}</summary>
+          <div class="admin-replies-list" id="admin-replies-${post.id}">${repliesHtml}</div>
+        </details>
+      </div>`;
+  }).join('');
+}
+
+async function adminDeleteReply(replyId, postId) {
+  if (!confirm('Delete this reply?')) return;
+  await dbDeleteReply(replyId);
+  const adminRow = document.getElementById(`admin-reply-${replyId}`);
+  if (adminRow) adminRow.remove();
+  const lbRow = document.querySelector(`[data-reply-id="${replyId}"]`);
+  if (lbRow) lbRow.remove();
+  // Update summary count
+  const list = document.getElementById(`admin-replies-${postId}`);
+  if (list) {
+    const remaining = list.querySelectorAll('.admin-reply-row').length;
+    const summary = list.closest('details')?.querySelector('summary');
+    if (summary) summary.textContent = `↩ ${remaining} ${remaining === 1 ? 'Reply' : 'Replies'}`;
+    if (remaining === 0) list.innerHTML = '<div class="admin-reply-empty">No replies yet</div>';
+    const badge = document.querySelector(`#admin-wall-post-${postId} .admin-wall-reply-badge`);
+    if (badge) badge.textContent = remaining ? `💬 ${remaining}` : '';
+  }
+}
+
+async function adminDeleteWallPost(id) {
+  if (!confirm('Delete this wall post and all its replies?')) return;
+  await dbDeletePublicPost(id);
+  renderWall();
+  renderSubmissions();
+  const card = document.getElementById(`admin-wall-post-${id}`);
+  if (card) card.remove();
 }
 
 function renderSubmissions() {
