@@ -1365,6 +1365,13 @@ async function deleteWallPostFromLightbox(id) {
   closeWallPost();
 }
 
+async function deleteWallPostFromAdmin(id) {
+  if (!confirm("Delete this public post?")) return;
+  await dbDeletePublicPost(id);
+  renderWall();
+  renderSubmissions();
+}
+
 function setIdentityMode(tab, mode, btn) {
   const container = document.getElementById(tab + "-identity");
   container
@@ -2135,7 +2142,7 @@ function renderSubmissions() {
                 </div>
                 ${_subContent(s)}
                 <div class="sub-actions">
-                    <button class="sub-btn sub-btn-delete" onclick="deletePublicPost('${s.id}');renderSubmissions()">🗑 Delete from Wall</button>
+                    <button class="sub-btn sub-btn-delete" onclick="deleteWallPostFromAdmin('${s.id}')">🗑 Delete from Wall</button>
                 </div>
             </div>`,
       )
