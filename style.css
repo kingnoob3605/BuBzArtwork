@@ -1527,6 +1527,86 @@ nav {
     letter-spacing: 0.05em;
 }
 
+/* ─── Wall image: click to fullscreen, download on hover ─── */
+.wall-card-img {
+    position: relative;
+    cursor: zoom-in;
+}
+.wall-download-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.58);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.28rem 0.6rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.18s;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2;
+}
+.wall-card-img:hover .wall-download-btn { opacity: 1; }
+@media (hover: none) { .wall-download-btn { opacity: 1; } }
+
+/* ─── Wall image fullscreen overlay ─── */
+#wall-img-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+}
+#wall-img-overlay.open { display: flex; }
+.wall-img-overlay-inner {
+    position: relative;
+    max-width: 92vw;
+    max-height: 92vh;
+}
+.wall-img-overlay-inner img {
+    max-width: 90vw;
+    max-height: 86vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.7);
+    display: block;
+}
+.wall-img-overlay-close {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #fff;
+    color: #333;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    line-height: 1;
+}
+
+/* ─── Quick reaction preset buttons ─── */
+.reaction-quick-btn {
+    opacity: 0.45;
+    transition: opacity 0.15s, transform 0.1s;
+    font-size: 0.9rem !important;
+    padding: 0.18rem 0.4rem !important;
+}
+.reaction-quick-btn:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
 .wall-empty {
     column-span: all;
     text-align: center;
