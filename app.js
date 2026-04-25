@@ -767,26 +767,36 @@ function onPickerOutsideClick(e) {
 // ═══════════════════════════════════════════════
 // getComments is now provided by db.js (synchronous cache read)
 
+const COMMENT_AVATARS = ['🐰','🦊','🐱','🐸','🌸','⭐','🎀','🍓','🌙','🎨'];
+
 function renderComments(artId) {
   const list = document.getElementById("comments-list");
   const comments = getComments(artId);
   if (comments.length === 0) {
-    list.innerHTML =
-      '<span class="comment-no">No comments yet, be the first! ✨</span>';
+    list.innerHTML = `<div class="comment-empty">
+      <span class="comment-empty-icon">💬</span>
+      <span>No comments yet — be the first!</span>
+    </div>`;
     return;
   }
   list.innerHTML = comments
-    .map(
-      (c) => `
+    .map((c, i) => {
+      const avatar = COMMENT_AVATARS[i % COMMENT_AVATARS.length];
+      const delBtn = adminLoggedIn
+        ? `<button class="comment-delete" onclick="deleteComment(${JSON.stringify(artId)}, '${c.id}')" title="Delete">✕</button>`
+        : '';
+      return `
         <div class="comment-item">
-            <div class="comment-top">
-                <div class="comment-meta">${escHtml(formatCommentDate(c.date))}</div>
-                ${adminLoggedIn ? `<button class="comment-delete" onclick="deleteComment(${JSON.stringify(artId)}, '${c.id}')" title="Delete comment">🗑</button>` : ""}
+          <div class="comment-avatar">${avatar}</div>
+          <div class="comment-bubble">
+            <div class="comment-text">${escHtml(c.text)}</div>
+            <div class="comment-foot">
+              <span class="comment-meta">${escHtml(formatCommentDate(c.date))}</span>
+              ${delBtn}
             </div>
-            <div>${escHtml(c.text)}</div>
-        </div>
-    `,
-    )
+          </div>
+        </div>`;
+    })
     .join("");
   list.scrollTop = list.scrollHeight;
 }
