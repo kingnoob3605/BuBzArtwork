@@ -1392,6 +1392,9 @@ const SUBMIT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SUBMIT_COOLDOWN_KEY = "last-submit-ts";
 
 function checkSubmitCooldown() {
+  // TEMP: cooldown disabled for bug testing — re-enable before going live
+  return true;
+  /* original cooldown (24h):
   const last = parseInt(localStorage.getItem(SUBMIT_COOLDOWN_KEY) || "0", 10);
   const diff = Date.now() - last;
   if (last && diff < SUBMIT_COOLDOWN_MS) {
@@ -1404,11 +1407,12 @@ function checkSubmitCooldown() {
   }
   localStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now()));
   return true;
+  */
 }
 
-// ─── Comment cooldown: 60 seconds (in-memory, resets on refresh) ─────────
+// ─── Comment cooldown: 5 seconds (prevents double-post, not annoying) ────
 let _lastCommentTime = 0;
-const COMMENT_COOLDOWN_MS = 60000;
+const COMMENT_COOLDOWN_MS = 5000;
 const COMMENT_MAX_CHARS = 300;
 
 function checkCommentCooldown() {
