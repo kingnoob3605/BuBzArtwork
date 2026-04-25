@@ -7,6 +7,7 @@ let currentFilter = "all"; // 'all' | 'sfw' | 'nsfw'
 let activeTag = null; // string | null
 let allArtworks = []; // merged artworks array
 let currentArtwork = null; // open lightbox artwork
+let currentWallPost = null; // open wall lightbox post
 
 let logoClickCount = 0;
 let logoClickTimer = null;
@@ -1056,66 +1057,39 @@ function renderWall() {
     }
 
     grid.innerHTML = posts.map(post => {
-        const sender = post.sender
-            ? `<span class="wall-sender">✏️ ${escHtml(post.sender)}</span>`
-            : `<span class="wall-sender anon">🙈 Anonymous</span>`;
-        const date = timeAgo(post.timestamp);
-        const reactionsHtml = buildWallReactionsHtml(post.id);
-        const repliesHtml   = buildRepliesHtml(post.id);
-        const replyCount    = getReplies(post.id).length;
-
-        const adminDel = adminLoggedIn
-            ? `<button class="wall-del-btn" onclick="deletePublicPost('${post.id}')" title="Delete post">🗑</button>`
-            : '';
-
-        const footer = `<div class="wall-card-footer">
-            <span class="wall-type-badge">${post.type === 'drawing' ? '🎨 Drawing' : post.type === 'poll' ? '📊 Poll' : '💬 Message'}</span>
-            ${post.type !== 'poll' ? sender : ''}
-            <span class="wall-date">${escHtml(date)}</span>
-        </div>
-        <div class="wall-reactions-row" id="wall-reactions-${post.id}">${reactionsHtml}</div>
-        <div class="wall-replies-wrap">
-            <div class="wall-replies" id="replies-${post.id}">${repliesHtml}</div>
-            <div class="reply-input-row" id="reply-row-${post.id}" style="display:none">
-                <div class="reply-input-top">
-                    <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
-                        onkeydown="if(event.key==='Enter')postReply('${post.id}')">
-                </div>
-                <div class="reply-input-bottom">
-                    <select class="reply-anon-sel" id="reply-anon-${post.id}">
-                        <option value="">🙈 Anon</option>
-                        <option value="__named__">✏️ Named…</option>
-                    </select>
-                    <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name…" style="display:none" maxlength="40">
-                    <button class="reply-send-btn" onclick="postReply('${post.id}')">Send ✨</button>
-                    <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕</button>
-                </div>
-            </div>
-            <button class="reply-toggle-btn" onclick="toggleReplyInput('${post.id}')">
-                ↩ ${replyCount > 0 ? replyCount + ' Repl' + (replyCount === 1 ? 'y' : 'ies') : 'Reply'}
-            </button>
+        const reactions = getWallReactions(post.id);
+        const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
+        const replyCount = getReplies(post.id).length;
+        const senderText = post.sender ? `✏️ ${escHtml(post.sender)}` : '🙈 Anon';
+        const statsHtml = [
+            totalReactions > 0 ? `<span class="wall-mini-stat">❤️ ${totalReactions}</span>` : '',
+            replyCount > 0     ? `<span class="wall-mini-stat">💬 ${replyCount}</span>`      : '',
+        ].join('');
+        const miniFooter = `<div class="wall-card-mini-foot">
+            <span class="wall-mini-sender">${senderText}</span>
+            <span class="wall-mini-ago">${timeAgo(post.timestamp)}</span>
+            ${statsHtml}
         </div>`;
 
-        if (post.type === 'poll') {
-            return `<div class="wall-card poll-card">
-                ${adminDel}
-                <div class="wall-card-poll">${buildPollHtml(post)}</div>
-                ${footer}
+        if (post.type === 'drawing') {
+            return `<div class="wall-card" onclick="openWallPost('${post.id}')">
+                <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
+                ${miniFooter}
             </div>`;
-        } else if (post.type === 'drawing') {
-            return `<div class="wall-card">
-                ${adminDel}
-                <div class="wall-card-img" onclick="openWallImageOverlay('${post.data}')">
-                    <img src="${post.data}" alt="Drawing" loading="lazy">
-                    <button class="wall-download-btn" onclick="downloadWallImage('${post.data}',event)" title="Download drawing">⬇ Download</button>
+        } else if (post.type === 'poll') {
+            let question = '';
+            try { question = JSON.parse(post.data).question; } catch {}
+            return `<div class="wall-card wall-card-poll-thumb" onclick="openWallPost('${post.id}')">
+                <div class="wall-card-poll-preview">
+                    <span class="wall-poll-thumb-icon">📊</span>
+                    <p class="wall-poll-thumb-q">${escHtml(question.slice(0, 80))}${question.length > 80 ? '…' : ''}</p>
                 </div>
-                ${footer}
+                ${miniFooter}
             </div>`;
         } else {
-            return `<div class="wall-card">
-                ${adminDel}
-                <div class="wall-card-text">${escHtml(post.data)}</div>
-                ${footer}
+            return `<div class="wall-card" onclick="openWallPost('${post.id}')">
+                <div class="wall-card-text">${escHtml(post.data.slice(0, 120))}${post.data.length > 120 ? '…' : ''}</div>
+                ${miniFooter}
             </div>`;
         }
     }).join('');
@@ -1267,22 +1241,113 @@ function downloadWallImage(url, e) {
   a.click();
 }
 
-function openWallImageOverlay(url) {
-  let overlay = document.getElementById('wall-img-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'wall-img-overlay';
-    overlay.innerHTML = `
-      <div class="wall-img-overlay-inner">
-        <img id="wall-img-overlay-img" alt="Drawing">
-        <button class="wall-img-overlay-close" onclick="document.getElementById('wall-img-overlay').classList.remove('open')">✕</button>
-      </div>`;
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('open'); });
-    document.body.appendChild(overlay);
-  }
-  document.getElementById('wall-img-overlay-img').src = url;
-  overlay.classList.add('open');
+function openWallPost(id) {
+    const post = getPublicPosts().find(p => p.id === id);
+    if (!post) return;
+
+    // Reset IDs from previous open post
+    if (currentWallPost) {
+        const prev = currentWallPost.id;
+        const r = document.getElementById(`wall-reactions-${prev}`);
+        if (r) r.id = 'wlb-reactions';
+        const rep = document.getElementById(`replies-${prev}`);
+        if (rep) rep.id = 'wlb-replies';
+    }
+    currentWallPost = post;
+
+    // Left panel: content
+    const contentEl = document.getElementById('wlb-content');
+    if (post.type === 'drawing') {
+        contentEl.className = 'wall-lb-left wall-lb-drawing';
+        contentEl.innerHTML = `
+            <img src="${post.data}" alt="Drawing" class="wall-lb-img">
+            <button class="wall-lb-download-btn" onclick="downloadWallImage('${post.data}',event)">⬇ Download</button>`;
+    } else if (post.type === 'poll') {
+        contentEl.className = 'wall-lb-left wall-lb-poll';
+        contentEl.innerHTML = `<div class="wall-lb-poll-wrap">${buildPollHtml(post)}</div>`;
+    } else {
+        contentEl.className = 'wall-lb-left wall-lb-message';
+        contentEl.innerHTML = `
+            <div class="wall-lb-text-wrap">
+                <span class="wall-lb-bigquote">"</span>
+                <p class="wall-lb-text">${escHtml(post.data)}</p>
+            </div>`;
+    }
+
+    // Meta row
+    const sender = post.sender ? `✏️ ${escHtml(post.sender)}` : '🙈 Anonymous';
+    const typeBadge = post.type === 'drawing' ? '🎨 Drawing' : post.type === 'poll' ? '📊 Poll' : '💬 Message';
+    const adminDelBtn = adminLoggedIn
+        ? `<button class="wall-lb-del" onclick="deletePublicPost('${post.id}');closeWallPost()" title="Delete">🗑</button>`
+        : '';
+    document.getElementById('wlb-meta').innerHTML = `
+        <span class="wall-type-badge">${typeBadge}</span>
+        <span class="wall-lb-sender">${sender}</span>
+        <span class="wall-lb-date">${timeAgo(post.timestamp)}</span>
+        ${adminDelBtn}`;
+
+    // Reactions — assign real post ID so addWallReaction/renderWallReactions find it
+    const reactEl = document.getElementById('wlb-reactions');
+    reactEl.id = `wall-reactions-${post.id}`;
+    reactEl.innerHTML = buildWallReactionsHtml(post.id);
+
+    // Replies
+    const repliesEl = document.getElementById('wlb-replies');
+    repliesEl.id = `replies-${post.id}`;
+    repliesEl.innerHTML = buildRepliesHtml(post.id);
+
+    // Reply input
+    const replyCount = getReplies(post.id).length;
+    document.getElementById('wlb-reply-input').innerHTML = `
+        <div class="reply-input-row" id="reply-row-${post.id}" style="display:none">
+            <div class="reply-input-top">
+                <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
+                    onkeydown="if(event.key==='Enter')postReply('${post.id}')">
+            </div>
+            <div class="reply-input-bottom">
+                <select class="reply-anon-sel" id="reply-anon-${post.id}">
+                    <option value="">🙈 Anon</option>
+                    <option value="__named__">✏️ Named…</option>
+                </select>
+                <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name…" style="display:none" maxlength="40">
+                <button class="reply-send-btn" onclick="postReply('${post.id}')">Send ✨</button>
+                <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕</button>
+            </div>
+        </div>
+        <button class="reply-toggle-btn" onclick="toggleReplyInput('${post.id}')">
+            ↩ ${replyCount > 0 ? replyCount + ' Repl' + (replyCount === 1 ? 'y' : 'ies') : 'Reply'}
+        </button>`;
+
+    const lb = document.getElementById('wall-lightbox');
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo('.wall-lb-inner',
+            { y: 40, opacity: 0, scale: 0.97 },
+            { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'power3.out' }
+        );
+    }
+}
+
+function closeWallPost() {
+    const finish = () => {
+        document.getElementById('wall-lightbox').classList.remove('open');
+        document.body.style.overflow = '';
+        if (currentWallPost) {
+            const r = document.getElementById(`wall-reactions-${currentWallPost.id}`);
+            if (r) r.id = 'wlb-reactions';
+            const rep = document.getElementById(`replies-${currentWallPost.id}`);
+            if (rep) rep.id = 'wlb-replies';
+        }
+        currentWallPost = null;
+        if (typeof gsap !== 'undefined') gsap.set('.wall-lb-inner', { y: 0, opacity: 1, scale: 1 });
+    };
+    if (typeof gsap !== 'undefined') {
+        gsap.to('.wall-lb-inner', { y: 20, opacity: 0, scale: 0.97, duration: 0.25, ease: 'power2.in', onComplete: finish });
+    } else {
+        finish();
+    }
 }
 
 async function deletePublicPost(id) {
@@ -2297,6 +2362,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === this) closeLightbox();
   });
 
+  // Wall post lightbox backdrop close
+  document.getElementById("wall-lightbox").addEventListener("click", function (e) {
+    if (e.target === this) closeWallPost();
+  });
+
   // Admin panel overlay close
   document
     .getElementById("admin-panel")
@@ -2317,6 +2387,8 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("admin-panel").classList.contains("open")
     ) {
       closeAdmin();
+    } else if (document.getElementById("wall-lightbox").classList.contains("open")) {
+      closeWallPost();
     } else if (document.getElementById("lightbox").classList.contains("open")) {
       closeLightbox();
     }

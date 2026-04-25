@@ -663,6 +663,27 @@
     </div>
 
     <!-- =============================================
+     WALL POST LIGHTBOX
+     ============================================= -->
+    <div id="wall-lightbox">
+      <div class="wall-lb-inner">
+        <button class="wall-lb-close" onclick="closeWallPost()" aria-label="Close">✕</button>
+        <!-- Left: image / text / poll content -->
+        <div class="wall-lb-left" id="wlb-content"></div>
+        <!-- Right: meta + reactions + replies -->
+        <div class="wall-lb-right">
+          <div class="wall-lb-meta" id="wlb-meta"></div>
+          <div class="wall-reactions-row" id="wlb-reactions"></div>
+          <hr class="wall-lb-divider">
+          <div class="wall-replies-wrap">
+            <div class="wall-replies" id="wlb-replies"></div>
+            <div id="wlb-reply-input"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================
      ADMIN PASSWORD PROMPT
      ============================================= -->
     <div id="admin-password-prompt" class="hidden">
@@ -897,11 +918,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Scripts — data before app -->
-    <script src="data.js?v=4"></script>
-    <script src="keys.js?v=4"></script>
-    <script src="db.js?v=4"></script>
-    <script src="app.js?v=4"></script>
-    <script src="mobile-enhance.js?v=4"></script>
+    <script src="data.js?v=5"></script>
+    <script src="keys.js?v=5"></script>
+    <script src="db.js?v=5"></script>
+    <script src="app.js?v=5"></script>
+    <script src="mobile-enhance.js?v=5"></script>
 
     <!-- Vercel Analytics (gated to deployed host; avoids 404 in preview) -->
     <script>
