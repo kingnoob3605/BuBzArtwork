@@ -1042,16 +1042,30 @@ function buildPollHtml(post) {
             <div class="poll-total">${total} vote${total !== 1 ? 's' : ''}${voted ? ' · You voted!' : ' · Tap to vote'}</div>`;
 }
 
+const REPLY_AVATARS = ['🐣','🐻','🌷','🍄','🎭','🦋','🍀','🔮','🎪','🌙'];
+
 function buildRepliesHtml(postId) {
     const replies = getReplies(postId);
-    if (!replies.length) return '';
-    return replies.map(r => `
+    if (!replies.length) return '<div class="wall-reply-empty">No replies yet — say something! ✨</div>';
+    return replies.map((r, i) => {
+        const avatar = REPLY_AVATARS[i % REPLY_AVATARS.length];
+        const sender = r.sender ? escHtml(r.sender) : 'Anon';
+        const delBtn = adminLoggedIn
+            ? `<button class="reply-del-btn" onclick="deleteReply('${r.id}')" title="Delete">✕</button>`
+            : '';
+        return `
         <div class="wall-reply" data-reply-id="${r.id}">
-            <span class="reply-sender">${r.sender ? escHtml(r.sender) : '🙈 Anon'}</span>
-            <span class="reply-text">${escHtml(r.text)}</span>
-            <span class="reply-date">${escHtml(formatCommentDate(r.timestamp))}</span>
-            ${adminLoggedIn ? `<button class="reply-del-btn" onclick="deleteReply('${r.id}')">🗑</button>` : ''}
-        </div>`).join('');
+            <div class="reply-avatar">${avatar}</div>
+            <div class="reply-bubble">
+                <div class="reply-top">
+                    <span class="reply-sender">${sender}</span>
+                    <span class="reply-date">${escHtml(formatCommentDate(r.timestamp))}</span>
+                    ${delBtn}
+                </div>
+                <div class="reply-text">${escHtml(r.text)}</div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function renderWall() {
