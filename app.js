@@ -1097,7 +1097,8 @@ function renderWall() {
 
 // ── Reply functions ────────────────────────────
 function toggleReplyInput(postId) {
-    const row  = document.getElementById('reply-row-' + postId);
+    const row = document.getElementById('reply-row-' + postId);
+    if (!row) return;
     const isOpen = row.style.display !== 'none';
     row.style.display = isOpen ? 'none' : 'flex';
     if (!isOpen) document.getElementById('reply-input-' + postId)?.focus();
@@ -1145,18 +1146,16 @@ async function deleteReply(replyId) {
 async function votePoll(postId, optionIdx) {
     const voted = await dbVotePoll(postId, optionIdx);
     if (!voted) return; // already voted
-    // Re-render just the poll card content
     const post = getPublicPosts().find(p => p.id === postId);
     if (!post) return;
-    const pollWrap = document.querySelector(`#wall-grid .poll-card .wall-card-poll`);
-    // Find the right card
-    document.querySelectorAll('.poll-card').forEach(card => {
-        const delBtn = card.querySelector(`[onclick*="${postId}"]`);
-        if (delBtn || card.innerHTML.includes(`votePoll('${postId}'`)) {
-            const wrap = card.querySelector('.wall-card-poll');
+    // Update poll inside the wall lightbox if it's open for this post
+    if (currentWallPost && currentWallPost.id === postId) {
+        const contentEl = document.getElementById('wlb-content');
+        if (contentEl) {
+            const wrap = contentEl.querySelector('.wall-lb-poll-wrap');
             if (wrap) wrap.innerHTML = buildPollHtml(post);
         }
-    });
+    }
 }
 
 function addPollOption() {
@@ -1229,16 +1228,19 @@ function buildWallReactionsHtml(postId) {
 }
 
 function downloadWallImage(url, e) {
-  e.stopPropagation();
-  // Use Cloudinary fl_attachment to force Content-Disposition: attachment
+  if (e) e.stopPropagation();
+  // fl_attachment tells Cloudinary to set Content-Disposition: attachment
   const dlUrl = url.includes('cloudinary.com')
     ? url.replace('/upload/', '/upload/fl_attachment/')
     : url;
+  // Must be in DOM before .click() — detached elements are silently ignored by most browsers
   const a = document.createElement('a');
   a.href = dlUrl;
   a.target = '_blank';
-  a.rel = 'noopener';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
 }
 
 function openWallPost(id) {
@@ -1260,8 +1262,8 @@ function openWallPost(id) {
     if (post.type === 'drawing') {
         contentEl.className = 'wall-lb-left wall-lb-drawing';
         contentEl.innerHTML = `
-            <img src="${post.data}" alt="Drawing" class="wall-lb-img">
-            <button class="wall-lb-download-btn" onclick="downloadWallImage('${post.data}',event)">⬇ Download</button>`;
+            <img src="${escHtml(post.data)}" alt="Drawing" class="wall-lb-img">
+            <button class="wall-lb-download-btn" data-url="${escHtml(post.data)}" onclick="downloadWallImage(this.dataset.url,event)">⬇ Download</button>`;
     } else if (post.type === 'poll') {
         contentEl.className = 'wall-lb-left wall-lb-poll';
         contentEl.innerHTML = `<div class="wall-lb-poll-wrap">${buildPollHtml(post)}</div>`;
@@ -1278,7 +1280,7 @@ function openWallPost(id) {
     const sender = post.sender ? `✏️ ${escHtml(post.sender)}` : '🙈 Anonymous';
     const typeBadge = post.type === 'drawing' ? '🎨 Drawing' : post.type === 'poll' ? '📊 Poll' : '💬 Message';
     const adminDelBtn = adminLoggedIn
-        ? `<button class="wall-lb-del" onclick="deletePublicPost('${post.id}');closeWallPost()" title="Delete">🗑</button>`
+        ? `<button class="wall-lb-del" onclick="deleteWallPostFromLightbox('${post.id}')" title="Delete">🗑</button>`
         : '';
     document.getElementById('wlb-meta').innerHTML = `
         <span class="wall-type-badge">${typeBadge}</span>
@@ -1354,6 +1356,13 @@ async function deletePublicPost(id) {
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
   renderWall();
+}
+
+async function deleteWallPostFromLightbox(id) {
+  if (!confirm("Delete this public post?")) return;
+  await dbDeletePublicPost(id);
+  renderWall();
+  closeWallPost();
 }
 
 function setIdentityMode(tab, mode, btn) {
