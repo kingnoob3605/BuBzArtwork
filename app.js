@@ -49,6 +49,21 @@ function formatDate(str) {
   return `${months[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
 }
 
+function timeAgo(iso) {
+  if (!iso) return '';
+  const sec = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (sec < 60) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  const mo = Math.floor(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  return `${Math.floor(mo / 12)}y ago`;
+}
+
 function formatCommentDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -1044,7 +1059,7 @@ function renderWall() {
         const sender = post.sender
             ? `<span class="wall-sender">✏️ ${escHtml(post.sender)}</span>`
             : `<span class="wall-sender anon">🙈 Anonymous</span>`;
-        const date = formatCommentDate(post.timestamp);
+        const date = timeAgo(post.timestamp);
         const reactionsHtml = buildWallReactionsHtml(post.id);
         const repliesHtml   = buildRepliesHtml(post.id);
         const replyCount    = getReplies(post.id).length;
@@ -1090,7 +1105,10 @@ function renderWall() {
         } else if (post.type === 'drawing') {
             return `<div class="wall-card">
                 ${adminDel}
-                <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
+                <div class="wall-card-img" onclick="openWallImageOverlay('${post.data}')">
+                    <img src="${post.data}" alt="Drawing" loading="lazy">
+                    <button class="wall-download-btn" onclick="downloadWallImage('${post.data}',event)" title="Download drawing">⬇ Download</button>
+                </div>
                 ${footer}
             </div>`;
         } else {
@@ -1213,9 +1231,15 @@ async function submitPoll() {
     renderWall();
 }
 
+const WALL_QUICK_REACTIONS = ['❤️', '🔥', '✨'];
+
 function buildWallReactionsHtml(postId) {
   const data = getWallReactions(postId);
   const used = Object.keys(data).filter((e) => data[e] > 0);
+  const quickBtns = WALL_QUICK_REACTIONS
+    .filter(e => !used.includes(e))
+    .map(e => `<button class="reaction-btn reaction-quick-btn wall-reaction-btn" onclick="addWallReaction('${postId}','${e}')" title="${e}">${e}</button>`)
+    .join('');
   return (
     used
       .map(
@@ -1225,8 +1249,42 @@ function buildWallReactionsHtml(postId) {
         </button>`,
       )
       .join("") +
+    quickBtns +
     `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`
   );
+}
+
+async function downloadWallImage(url, e) {
+  e.stopPropagation();
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bubz-drawing.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch {
+    showToast('Download failed — try right-clicking the image.');
+  }
+}
+
+function openWallImageOverlay(url) {
+  let overlay = document.getElementById('wall-img-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'wall-img-overlay';
+    overlay.innerHTML = `
+      <div class="wall-img-overlay-inner">
+        <img id="wall-img-overlay-img" alt="Drawing">
+        <button class="wall-img-overlay-close" onclick="document.getElementById('wall-img-overlay').classList.remove('open')">✕</button>
+      </div>`;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('open'); });
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('wall-img-overlay-img').src = url;
+  overlay.classList.add('open');
 }
 
 async function deletePublicPost(id) {
