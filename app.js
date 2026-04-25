@@ -1795,6 +1795,9 @@ async function handleArtFiles(files) {
     const status = document.getElementById('art-upload-status');
     status.textContent = `Uploading ${files.length} image(s)…`;
 
+    console.log(`[Cloudinary] Starting upload of ${files.length} file(s)`);
+    console.log(`[Cloudinary] Cloud: ${CLOUDINARY_CLOUD}, Preset: ${CLOUDINARY_PRESET}`);
+
     for (const file of files) {
         const card = document.createElement('div');
         card.className = 'preview-card';
@@ -1808,24 +1811,45 @@ async function handleArtFiles(files) {
         card.appendChild(badge);
         grid.appendChild(card);
 
+        console.log(`[Cloudinary] Processing file: ${file.name} (${(file.size / 1024).toFixed(2)} KB, type: ${file.type})`);
+
         try {
             const fd = new FormData();
             fd.append('file', file);
             fd.append('upload_preset', CLOUDINARY_PRESET);
+
+            console.log(`[Cloudinary] Sending POST to https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`);
+
             const res = await fetch(
                 `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
                 { method: 'POST', body: fd }
             );
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
-            if (!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
 
+            console.log(`[Cloudinary] Response status: ${res.status} ${res.statusText}`);
+
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error(`[Cloudinary] HTTP Error ${res.status}:`, errText);
+                throw new Error(`HTTP ${res.status}: ${errText.substring(0, 100)}`);
+            }
+
+            const json = await res.json();
+            console.log(`[Cloudinary] Response JSON:`, json);
+
+            if (!json.secure_url) {
+                const errMsg = json.error?.message || json.error || 'No secure_url in response';
+                console.error(`[Cloudinary] Upload failed - no secure_url. Error:`, errMsg);
+                throw new Error(errMsg);
+            }
+
+            console.log(`[Cloudinary] ✅ Upload successful: ${json.secure_url}`);
             const inp = document.createElement('input');
             inp.type = 'url'; inp.className = 'batch-url'; inp.value = json.secure_url;
             document.getElementById('batch-url-list').appendChild(inp);
             badge.textContent = '✅';
             card.classList.add('done');
         } catch (e) {
+            console.error(`[Cloudinary] ❌ Error uploading ${file.name}:`, e);
             badge.textContent = '❌';
             card.classList.add('error');
             card.title = e.message;
@@ -1837,6 +1861,8 @@ async function handleArtFiles(files) {
     status.textContent = failed === 0
         ? `✅ ${done} image(s) ready — fill in the title and hit Add!`
         : `⚠️ ${done} uploaded, ${failed} failed`;
+
+    console.log(`[Cloudinary] Upload batch complete: ${done} done, ${failed} failed`);
 }
 
 function addUrlField() {
@@ -1881,6 +1907,7 @@ async function submitNewArt() {
     document.getElementById('new-tags').value  = '';
     document.getElementById('new-nsfw').checked = false;
     document.getElementById('batch-url-list').innerHTML = '';
+    document.getElementById('paste-url-input').value = '';
     document.getElementById('art-preview-grid').innerHTML = '';
     document.getElementById('art-upload-status').textContent = '';
 
@@ -1890,7 +1917,9 @@ async function submitNewArt() {
 // ── Submissions view ───────────────────────────
 // shared helpers for submission rendering
 function _subTypeBadge(s) {
-  return s.type === "drawing" ? "🎨 Drawing" : "💬 Message";
+  if (s.type === "drawing") return "🎨 Drawing";
+  if (s.type === "poll")    return "📊 Poll";
+  return "💬 Message";
 }
 function _subSender(s) {
   return s.sender
@@ -1898,9 +1927,15 @@ function _subSender(s) {
     : `<span class="submission-sender anon">🙈 Anonymous</span>`;
 }
 function _subContent(s) {
-  return s.type === "drawing"
-    ? `<img src="${s.data}" class="sub-img" alt="drawing">`
-    : `<p class="sub-text">${escHtml(s.data)}</p>`;
+  if (s.type === "drawing") return `<img src="${s.data}" class="sub-img" alt="drawing">`;
+  if (s.type === "poll") {
+    try {
+      const d = JSON.parse(s.data);
+      const opts = (d.options || []).map((o, i) => `${i + 1}. ${escHtml(o)}`).join("<br>");
+      return `<div class="sub-text"><strong>${escHtml(d.question)}</strong><br>${opts}</div>`;
+    } catch { return `<p class="sub-text">[Poll data unavailable]</p>`; }
+  }
+  return `<p class="sub-text">${escHtml(s.data)}</p>`;
 }
 
 function renderPending() {
@@ -2051,11 +2086,14 @@ window.addEventListener("message", async (e) => {
     timestamp: new Date().toISOString(),
     requestedVis: vis,
   };
-  await savePending(entry);
-  if (vis === "public") {
-    showToast("WigglyPaint submitted! Waiting for approval 🌐✨");
-  } else {
-    showToast("WigglyPaint sent privately! 🔒✨ Thank you!");
+  try {
+    await savePending(entry);
+    showToast(vis === "public"
+      ? "WigglyPaint submitted! Waiting for approval 🌐✨"
+      : "WigglyPaint sent privately! 🔒✨ Thank you!");
+  } catch {
+    localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
+    showToast("Failed to send — check your connection and try again 😢");
   }
 });
 
@@ -2182,6 +2220,7 @@ async function submitMobileDrawing() {
   } catch {
     localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
     showToast("Failed to send — check your connection and try again 😢");
+  } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Send ✨'; }
   }
 }
