@@ -1728,11 +1728,38 @@ nav {
     flex: 0 0 300px;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 1.25rem 1rem 1rem;
     gap: 0.7rem;
     border-left: 1px solid var(--card-border);
     background: linear-gradient(180deg, var(--card), var(--bg));
+}
+
+.wall-replies-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.wall-replies-wrap .wall-replies {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(239,116,92,0.35) transparent;
+}
+
+.wall-replies-wrap .wall-replies::-webkit-scrollbar {
+    width: 4px;
+}
+.wall-replies-wrap .wall-replies::-webkit-scrollbar-track {
+    background: transparent;
+}
+.wall-replies-wrap .wall-replies::-webkit-scrollbar-thumb {
+    background: rgba(239,116,92,0.4);
+    border-radius: 4px;
 }
 
 .wall-lb-meta {
