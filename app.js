@@ -494,14 +494,32 @@ function isEmojiAllowed(emoji) {
   return !BANNED_REACTION_EMOJIS.includes(emoji);
 }
 
-async function addReaction(artId, emoji) {
+function _spawnEmojiFloat(btn, emoji) {
+  const el = document.createElement('span');
+  el.className = 'emoji-float';
+  el.textContent = emoji;
+  const r = btn.getBoundingClientRect();
+  el.style.left = (r.left + r.width / 2 - 14) + 'px';
+  el.style.top  = (r.top - 8) + 'px';
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+
+function _popReactionBtn(btn) {
+  btn.classList.remove('reaction-pop');
+  void btn.offsetWidth; // reflow to restart
+  btn.classList.add('reaction-pop');
+  btn.addEventListener('animationend', () => btn.classList.remove('reaction-pop'), { once: true });
+}
+
+async function addReaction(artId, emoji, triggerBtn) {
   if (!isEmojiAllowed(emoji)) {
     showToast("That reaction isn't allowed here 🚫");
     return;
   }
+  if (triggerBtn) { _popReactionBtn(triggerBtn); _spawnEmojiFloat(triggerBtn, emoji); }
   await dbIncrementReaction(artId, emoji);
   renderReactions(artId);
-  // Also refresh the card in the gallery
   const card = document.querySelector(`.art-card[data-art-id="${artId}"]`);
   if (card) {
     const slot = card.querySelector(".card-reactions");
@@ -727,7 +745,7 @@ function renderReactions(artId) {
     usedEmojis
       .map((e) => {
         const count = data[e] || 0;
-        return `<button class="reaction-btn has-count" onclick="addReaction(${artId}, '${e}')" title="React with ${e}">
+        return `<button class="reaction-btn has-count" onclick="addReaction(${artId}, '${e}', this)" title="React with ${e}">
             ${e}<span class="reaction-count">${count}</span>
         </button>`;
       })
@@ -973,6 +991,13 @@ async function postComment() {
   input.value = "";
   updateCommentCounter(input);
   renderComments(currentArtwork.id);
+  const postBtn = document.getElementById('btn-post-comment');
+  if (postBtn) {
+    postBtn.classList.remove('btn-pulse');
+    void postBtn.offsetWidth;
+    postBtn.classList.add('btn-pulse');
+    postBtn.addEventListener('animationend', () => postBtn.classList.remove('btn-pulse'), { once: true });
+  }
 }
 
 function updateCommentCounter(input) {
@@ -1074,11 +1099,12 @@ function setWallFilter(filter, el) {
 
 // getWallReactions is now provided by db.js (synchronous cache read)
 
-async function addWallReaction(postId, emoji) {
+async function addWallReaction(postId, emoji, triggerBtn) {
   if (!isEmojiAllowed(emoji)) {
     showToast("That reaction isn't allowed here 🚫");
     return;
   }
+  if (triggerBtn) { _popReactionBtn(triggerBtn); _spawnEmojiFloat(triggerBtn, emoji); }
   await dbIncrementWallReaction(postId, emoji);
   renderWallReactions(postId);
 }
@@ -1321,7 +1347,7 @@ function buildWallReactionsHtml(postId) {
   const used = Object.keys(data).filter((e) => data[e] > 0);
   const quickBtns = WALL_QUICK_REACTIONS
     .filter(e => !used.includes(e))
-    .map(e => `<button class="reaction-btn reaction-quick-btn wall-reaction-btn" onclick="addWallReaction('${postId}','${e}')" title="${e}">${e}</button>`)
+    .map(e => `<button class="reaction-btn reaction-quick-btn wall-reaction-btn" onclick="addWallReaction('${postId}','${e}',this)" title="${e}">${e}</button>`)
     .join('');
   return (
     used
