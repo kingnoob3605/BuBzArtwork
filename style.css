@@ -572,6 +572,122 @@ nav {
     transform: scale(1.03);
 }
 
+/* ── Multi-image card grid ──────────────────────────────── */
+.art-card-img-wrap.multi-img-grid {
+    display: grid;
+    gap: 2px;
+    min-height: 180px;
+    overflow: hidden;
+    border-radius: 0;
+}
+.multi-img-grid--2 { grid-template-columns: 1fr 1fr; }
+.multi-img-grid--3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.multi-img-grid--4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.multi-img-grid--3 .multi-img-cell:first-child { grid-row: 1 / 3; }
+
+.multi-img-cell {
+    overflow: hidden;
+    position: relative;
+    min-height: 80px;
+}
+.multi-img-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+}
+.art-card:hover .multi-img-cell img { transform: scale(1.04); }
+
+/* +N overlay on last cell when >4 images */
+.multi-img-cell[data-extra]::after {
+    content: attr(data-extra);
+    position: absolute;
+    inset: 0;
+    background: rgba(20,5,30,0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-hand);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* Photo count badge */
+.multi-img-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 7px;
+    background: rgba(20,5,30,0.72);
+    color: #fff;
+    font-family: var(--font-stamp);
+    font-size: 0.65rem;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── Lightbox carousel controls ─────────────────────────── */
+#lb-img {
+    transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.lb-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: rgba(20,5,30,0.6);
+    border: 1.5px solid rgba(239,116,92,0.4);
+    color: var(--accent);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    display: none; /* hidden by default, shown by JS for multi-image */
+}
+.lb-carousel-btn:hover {
+    background: rgba(239,116,92,0.25);
+    border-color: var(--accent);
+    transform: translateY(-50%) scale(1.08);
+}
+.lb-carousel-prev { left: 8px; }
+.lb-carousel-next { right: 8px; }
+
+.lb-carousel-dots {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 6px;
+    z-index: 10;
+}
+.lb-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    border: 1.5px solid rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+}
+.lb-dot.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.25);
+}
+
 /* NSFW blur — lifts on hover */
 .art-card-img-wrap.is-nsfw img {
     filter: blur(18px) brightness(0.55);
