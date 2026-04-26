@@ -1131,6 +1131,44 @@ nav {
 .comment-item:hover .comment-delete { opacity: 1; }
 .comment-delete:hover { color: #e04040; background: rgba(220,80,80,0.1); }
 
+/* ── Owner comment ────────────────────────────────────── */
+.comment-item--owner .comment-avatar {
+    background: rgba(239,116,92,0.25);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(239,116,92,0.4);
+}
+.comment-item--owner .comment-bubble {
+    background: rgba(239,116,92,0.08);
+    border-color: rgba(239,116,92,0.5);
+    box-shadow: 0 2px 12px rgba(239,116,92,0.15);
+}
+.comment-item--owner .comment-bubble::before {
+    border-right-color: rgba(239,116,92,0.5);
+}
+.comment-item--owner .comment-bubble::after {
+    border-right-color: rgba(239,116,92,0.08);
+}
+.comment-item--owner:hover .comment-bubble {
+    border-color: var(--accent);
+}
+.comment-owner-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--font-stamp);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(239,116,92,0.12);
+    border: 1px solid rgba(239,116,92,0.35);
+    border-radius: 20px;
+    padding: 0.1rem 0.5rem;
+    margin-bottom: 0.3rem;
+    line-height: 1.6;
+}
+
 .comment-warning {
     font-size: 0.78rem;
     color: #ffb0b0;

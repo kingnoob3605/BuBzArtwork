@@ -781,14 +781,20 @@ function renderComments(artId) {
   }
   list.innerHTML = comments
     .map((c, i) => {
-      const avatar = COMMENT_AVATARS[i % COMMENT_AVATARS.length];
+      const isOwner = !!c.is_owner;
+      const avatar = isOwner ? '🎨' : COMMENT_AVATARS[i % COMMENT_AVATARS.length];
+      const ownerClass = isOwner ? ' comment-item--owner' : '';
+      const ownerBadge = isOwner
+        ? `<span class="comment-owner-badge">👑 BuBz</span>`
+        : '';
       const delBtn = adminLoggedIn
         ? `<button class="comment-delete" onclick="deleteComment(${JSON.stringify(artId)}, '${c.id}')" title="Delete">✕</button>`
         : '';
       return `
-        <div class="comment-item">
+        <div class="comment-item${ownerClass}">
           <div class="comment-avatar">${avatar}</div>
           <div class="comment-bubble">
+            ${ownerBadge}
             <div class="comment-text">${escHtml(c.text)}</div>
             <div class="comment-foot">
               <span class="comment-meta">${escHtml(formatCommentDate(c.date))}</span>
@@ -902,7 +908,7 @@ async function postComment() {
     return;
   }
 
-  await dbAddComment(currentArtwork.id, text);
+  await dbAddComment(currentArtwork.id, text, adminLoggedIn);
   input.value = "";
   updateCommentCounter(input);
   renderComments(currentArtwork.id);
