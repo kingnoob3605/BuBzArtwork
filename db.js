@@ -118,7 +118,7 @@ async function dbInit() {
         (repliesData || []).forEach(r => {
             const key = String(r.post_id);
             if (!_replies[key]) _replies[key] = [];
-            _replies[key].push({ id: r.id, text: r.text, sender: r.sender, timestamp: r.timestamp });
+            _replies[key].push({ id: r.id, text: r.text, sender: r.sender, timestamp: r.timestamp, is_owner: !!r.is_owner });
         });
 
         // Poll votes: count per post_id + option_idx
@@ -347,15 +347,15 @@ async function dbUnhideArt(artId) {
 // WALL REPLIES
 // ──────────────────────────────────────────────────────────────
 
-async function dbAddReply(postId, text, sender) {
+async function dbAddReply(postId, text, sender, isOwner = false) {
     const id        = String(Date.now() + Math.floor(Math.random() * 1000));
     const timestamp = new Date().toISOString();
     const key       = String(postId);
     if (!_replies[key]) _replies[key] = [];
-    _replies[key].push({ id, text, sender, timestamp });
-    const { error } = await _db.from('wall_replies').insert({ id, post_id: key, text, sender, timestamp });
+    _replies[key].push({ id, text, sender, timestamp, is_owner: !!isOwner });
+    const { error } = await _db.from('wall_replies').insert({ id, post_id: key, text, sender, timestamp, is_owner: !!isOwner });
     _dbErr('addReply', error);
-    return { id, text, sender, timestamp };
+    return { id, text, sender, timestamp, is_owner: !!isOwner };
 }
 
 async function dbDeleteReply(replyId) {

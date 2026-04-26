@@ -1115,15 +1115,19 @@ function buildRepliesHtml(postId) {
     const replies = getReplies(postId);
     if (!replies.length) return '<div class="wall-reply-empty">No replies yet — say something! ✨</div>';
     return replies.map((r, i) => {
-        const avatar = REPLY_AVATARS[i % REPLY_AVATARS.length];
-        const sender = r.sender ? escHtml(r.sender) : 'Anon';
+        const isOwner = !!r.is_owner;
+        const avatar  = isOwner ? '🎨' : REPLY_AVATARS[i % REPLY_AVATARS.length];
+        const sender  = isOwner ? 'BuBz' : (r.sender ? escHtml(r.sender) : 'Anon');
+        const ownerClass  = isOwner ? ' wall-reply--owner' : '';
+        const ownerBadge  = isOwner ? `<span class="reply-owner-badge">👑 BuBz</span>` : '';
         const delBtn = adminLoggedIn
             ? `<button class="reply-del-btn" onclick="deleteReply('${r.id}')" title="Delete">✕</button>`
             : '';
         return `
-        <div class="wall-reply" data-reply-id="${r.id}">
+        <div class="wall-reply${ownerClass}" data-reply-id="${r.id}">
             <div class="reply-avatar">${avatar}</div>
             <div class="reply-bubble">
+                ${ownerBadge}
                 <div class="reply-top">
                     <span class="reply-sender">${sender}</span>
                     <span class="reply-date">${escHtml(formatCommentDate(r.timestamp))}</span>
@@ -1210,19 +1214,29 @@ async function postReply(postId) {
 
     const sel    = document.getElementById('reply-anon-' + postId);
     const named  = sel?.value === '__named__';
-    const name   = named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null;
+    const name   = adminLoggedIn ? 'BuBz' : (named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null);
 
-    await dbAddReply(postId, text, name);
+    await dbAddReply(postId, text, name, adminLoggedIn);
     input.value = '';
+
+    // Auto-close the input row
+    const row = document.getElementById('reply-row-' + postId);
+    if (row) row.style.display = 'none';
+
     // Refresh replies in-place
     const repliesEl = document.getElementById('replies-' + postId);
-    if (repliesEl) repliesEl.innerHTML = buildRepliesHtml(postId);
+    if (repliesEl) {
+        repliesEl.innerHTML = buildRepliesHtml(postId);
+        // Scroll to bottom so new reply is visible
+        repliesEl.scrollTop = repliesEl.scrollHeight;
+    }
     // Update reply button count
     const toggleBtn = repliesEl?.closest('.wall-replies-wrap')?.querySelector('.reply-toggle-btn');
     if (toggleBtn) {
         const count = getReplies(postId).length;
         toggleBtn.textContent = `↩ ${count} Repl${count === 1 ? 'y' : 'ies'}`;
     }
+    showToast(adminLoggedIn ? 'Reply posted as BuBz 👑✨' : 'Reply sent! ✨');
 }
 
 async function deleteReply(replyId) {
