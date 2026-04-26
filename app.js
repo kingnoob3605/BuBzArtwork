@@ -7,6 +7,7 @@ let currentFilter = "all"; // 'all' | 'sfw' | 'nsfw'
 let activeTag = null; // string | null
 let allArtworks = []; // merged artworks array
 let currentArtwork = null; // open lightbox artwork
+let currentImageIndex = 0; // carousel index for multi-image artworks
 let currentWallPost = null; // open wall lightbox post
 
 let logoClickCount = 0;
@@ -350,11 +351,27 @@ function renderGallery() {
       : "";
 
     card.setAttribute("data-art-id", art.id);
+    const imgs = (art.images && art.images.length > 1) ? art.images : null;
+    let imgWrapHtml;
+    if (imgs) {
+      const shown = imgs.slice(0, 4);
+      const extra = imgs.length - 4;
+      const gridClass = imgs.length === 2 ? 'multi-img-grid--2' : imgs.length === 3 ? 'multi-img-grid--3' : 'multi-img-grid--4';
+      imgWrapHtml = `<div class="art-card-img-wrap multi-img-grid ${gridClass} ${art.nsfw ? 'is-nsfw' : ''}">
+        ${shown.map((url, idx) => `<div class="multi-img-cell"${idx === 3 && extra > 0 ? ` data-extra="+${extra + 1}"` : ''}>
+          <img src="${escHtml(url)}" alt="${escHtml(art.title)}" loading="lazy">
+        </div>`).join('')}
+        ${nsfwOverlay}
+        <span class="multi-img-badge">📷 ${imgs.length}</span>
+      </div>`;
+    } else {
+      imgWrapHtml = `<div class="art-card-img-wrap ${art.nsfw ? 'is-nsfw' : ''}">
+        <img src="${escHtml(art.image)}" alt="${escHtml(art.title)}" loading="lazy">
+        ${nsfwOverlay}
+      </div>`;
+    }
     card.innerHTML = `
-            <div class="art-card-img-wrap ${art.nsfw ? "is-nsfw" : ""}">
-                <img src="${escHtml(art.image)}" alt="${escHtml(art.title)}" loading="lazy">
-                ${nsfwOverlay}
-            </div>
+            ${imgWrapHtml}
             <div class="art-card-body">
                 ${art.nsfw ? '<span class="nsfw-badge">NSFW</span>' : ""}
                 <div class="art-card-title">${escHtml(art.title)}</div>
@@ -377,9 +394,10 @@ function openLightbox(id) {
   const art = allArtworks.find((a) => a.id === id);
   if (!art) return;
   currentArtwork = art;
+  currentImageIndex = 0;
 
-  document.getElementById("lb-img").src = art.image;
-  document.getElementById("lb-img").alt = art.title;
+  _lbSetImage(art, 0);
+
   document.getElementById("lb-title").textContent = art.title;
   document.getElementById("lb-date").textContent = formatDate(art.date);
   document.getElementById("lb-desc").textContent = art.description;
@@ -404,6 +422,48 @@ function openLightbox(id) {
     { y: 40, opacity: 0, scale: 0.97 },
     { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
   );
+}
+
+function _lbSetImage(art, idx) {
+  const imgs = (art.images && art.images.length > 1) ? art.images : [art.image];
+  const multi = imgs.length > 1;
+  const img = document.getElementById("lb-img");
+  img.src = imgs[idx] || art.image;
+  img.alt = art.title;
+
+  // Carousel prev/next
+  const prev = document.getElementById("lb-prev");
+  const next = document.getElementById("lb-next");
+  if (prev) prev.style.display = multi ? "flex" : "none";
+  if (next) next.style.display = multi ? "flex" : "none";
+
+  // Dot indicators
+  const dotsEl = document.getElementById("lb-dots");
+  if (dotsEl) {
+    if (multi) {
+      dotsEl.innerHTML = imgs.map((_, i) =>
+        `<span class="lb-dot${i === idx ? ' active' : ''}" onclick="lbNavImage(${i - idx})"></span>`
+      ).join('');
+      dotsEl.style.display = "flex";
+    } else {
+      dotsEl.innerHTML = "";
+      dotsEl.style.display = "none";
+    }
+  }
+}
+
+function lbNavImage(dir) {
+  if (!currentArtwork) return;
+  const imgs = (currentArtwork.images && currentArtwork.images.length > 1) ? currentArtwork.images : [currentArtwork.image];
+  currentImageIndex = (currentImageIndex + dir + imgs.length) % imgs.length;
+  const img = document.getElementById("lb-img");
+  img.style.opacity = "0";
+  img.style.transform = "scale(0.97)";
+  setTimeout(() => {
+    _lbSetImage(currentArtwork, currentImageIndex);
+    img.style.opacity = "1";
+    img.style.transform = "scale(1)";
+  }, 120);
 }
 
 function closeLightbox() {

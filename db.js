@@ -97,7 +97,8 @@ async function dbInit() {
         // Extra artworks (newest first from Supabase)
         _extraArts = (extraArts || []).map(a => ({
             id: a.id, title: a.title, description: a.description,
-            image: a.image, tags: a.tags || [], nsfw: a.nsfw || false, date: a.date,
+            image: a.image, images: a.images || null,
+            tags: a.tags || [], nsfw: a.nsfw || false, date: a.date,
         }));
 
         // Art overrides
@@ -284,7 +285,8 @@ async function dbAddExtraArtwork(art) {
     const { error } = await _db.from('extra_artworks').insert({
         id: String(art.id), title: art.title,
         description: art.description || '',
-        image: art.image, tags: art.tags || [],
+        image: art.image, images: art.images || null,
+        tags: art.tags || [],
         nsfw: art.nsfw || false, date: art.date || '',
     });
     _dbErr('addExtraArtwork', error);
@@ -295,7 +297,8 @@ async function dbUpdateExtraArtwork(artId, changes) {
     if (idx !== -1) _extraArts[idx] = { ..._extraArts[idx], ...changes };
     const { error } = await _db.from('extra_artworks').update({
         title: changes.title, description: changes.description,
-        image: changes.image, tags: changes.tags, nsfw: changes.nsfw,
+        image: changes.image, images: changes.images || null,
+        tags: changes.tags, nsfw: changes.nsfw,
     }).eq('id', String(artId));
     _dbErr('updateExtraArtwork', error);
 }
