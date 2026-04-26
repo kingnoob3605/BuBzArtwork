@@ -261,6 +261,12 @@ function toggleEraser(btn) {
 
 // ---- Canvas size presets ----
 function applyCanvasSize(val) {
+    if (strokes.length > 0 && !confirm('Changing size will clear your drawing. Continue?')) {
+        // Revert picker to current mode
+        const picker = document.getElementById('size-picker');
+        if (picker) picker.value = canvasSizeMode;
+        return;
+    }
     canvasSizeMode = val;
     lastGifUrl = null;
     strokes = [];
@@ -502,7 +508,7 @@ function submitToGallery() {
 
 function doSubmit() {
     redraw(false);
-    window.parent.postMessage({ type: 'wiggly-submit', dataUrl: lastGifUrl }, '*');
+    window.parent.postMessage({ type: 'wiggly-submit', dataUrl: lastGifUrl }, window.location.origin);
     setStatus('Submitted! ✨');
 }
 
@@ -510,6 +516,7 @@ function setStatus(msg) { document.getElementById('status').textContent = msg; }
 
 // ---- Listen for parent trigger ----
 window.addEventListener('message', e => {
+    if (e.origin !== window.location.origin) return;
     if (e.data && e.data.type === 'trigger-submit') submitToGallery();
 });
 
