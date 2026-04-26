@@ -1972,9 +1972,40 @@ nav {
     padding-top: 1.5rem;
 }
 .wall-lb-poll-wrap {
-    padding: 1.5rem;
+    padding: 2rem 1.75rem;
     width: 100%;
+    box-sizing: border-box;
 }
+
+/* Poll on paper background — override dark-theme colors */
+.wall-lb-poll-wrap .poll-question {
+    font-size: 1.3rem;
+    color: var(--paper-ink);
+    margin-bottom: 1.2rem;
+}
+.wall-lb-poll-wrap .poll-option {
+    background: rgba(58,42,32,0.05);
+    border: 1.5px solid rgba(58,42,32,0.2);
+    color: var(--paper-ink);
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    border-radius: 12px;
+}
+.wall-lb-poll-wrap .poll-option:not(:disabled):hover {
+    border-color: var(--accent);
+    background: rgba(239,116,92,0.1);
+}
+.wall-lb-poll-wrap .poll-option.my-vote {
+    border-color: var(--accent);
+    background: rgba(239,116,92,0.15);
+    font-weight: 700;
+}
+.wall-lb-poll-wrap .poll-bar {
+    background: rgba(239,116,92,0.22);
+}
+.wall-lb-poll-wrap .poll-opt-text { color: var(--paper-ink); }
+.wall-lb-poll-wrap .poll-opt-pct  { color: rgba(58,42,32,0.6); }
+.wall-lb-poll-wrap .poll-total    { color: rgba(58,42,32,0.55); font-size: 0.8rem; margin-top: 4px; }
 
 .wall-lb-right {
     flex: 0 0 300px;
