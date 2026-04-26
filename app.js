@@ -1157,9 +1157,12 @@ function renderWall() {
         const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
         const replyCount = getReplies(post.id).length;
         const senderText = post.sender ? `✏️ ${escHtml(post.sender)}` : '🙈 Anon';
+        const topEmoji = totalReactions > 0
+            ? Object.entries(reactions).sort((a, b) => b[1] - a[1])[0][0]
+            : '❤️';
         const statsHtml = [
-            totalReactions > 0 ? `<span class="wall-mini-stat">❤️ ${totalReactions}</span>` : '',
-            replyCount > 0     ? `<span class="wall-mini-stat">💬 ${replyCount}</span>`      : '',
+            totalReactions > 0 ? `<span class="wall-mini-stat">${topEmoji} ${totalReactions}</span>` : '',
+            replyCount > 0     ? `<span class="wall-mini-stat">💬 ${replyCount}</span>`               : '',
         ].join('');
         const miniFooter = `<div class="wall-card-mini-foot">
             <span class="wall-mini-sender">${senderText}</span>
