@@ -391,7 +391,7 @@ nav {
 }
 
 .page { display: none; }
-.page.active { display: block; animation: pageIn 0.4s ease; }
+.page.active { display: block; animation: pageIn 0.4s ease; overflow-x: hidden; }
 
 @keyframes pageIn {
     from { opacity: 0; transform: translateY(6px); }
@@ -494,6 +494,7 @@ nav {
 #gallery-grid {
     column-count: 3;
     column-gap: 1.25rem;
+    padding-top: 16px; /* room for tape strips above first-row cards */
     overflow: hidden;
 }
 @media (max-width: 900px) { #gallery-grid { column-count: 2; } }
@@ -530,11 +531,11 @@ nav {
     z-index: 5;
 }
 
-/* Tape strip — subtle washi on every card */
+/* Tape strip — sits on top edge of card so it never floats outside */
 .art-card::before {
     content: "";
     position: absolute;
-    top: -10px;
+    top: -8px;
     left: 50%;
     transform: translateX(-50%) rotate(-2deg);
     width: 70px;
@@ -543,6 +544,7 @@ nav {
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     opacity: 0.85;
     pointer-events: none;
+    z-index: 2;
 }
 .art-card:nth-child(3n)::before {
     background: var(--tape-pink);
