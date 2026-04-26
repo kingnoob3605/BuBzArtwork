@@ -74,11 +74,19 @@
       position: relative;
       overflow: hidden;
       min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e8d8cc;
     }
     #wp-canvas {
       display: block;
       touch-action: none;
       cursor: crosshair;
+      /* when using fixed size presets, canvas is centered with a shadow */
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+      max-width: 100%;
+      max-height: 100%;
     }
 
     /* ---- Action bar ---- */
@@ -112,6 +120,21 @@
     .wp-btn.primary:hover { background: #d4785e; border-color: #d4785e; }
 
     .wp-btn.fs-btn { padding: 5px 8px; font-size: 0.9rem; }
+
+    /* ---- Size picker ---- */
+    #size-picker {
+      padding: 4px 8px;
+      border: 1.5px solid #d4a088;
+      background: #fff;
+      color: #7a5c44;
+      border-radius: 20px;
+      font-size: 0.74rem;
+      cursor: pointer;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #size-picker:hover, #size-picker:focus { border-color: #e88c72; }
 
     #status {
       font-size: 0.72rem;
@@ -181,6 +204,13 @@
     <span id="status"></span>
   </div>
   <div class="action-right">
+    <select id="size-picker" title="Canvas size" onchange="applyCanvasSize(this.value)">
+      <option value="auto">🖥 Auto</option>
+      <option value="800x800">⬜ 800×800</option>
+      <option value="1280x720">🖼 1280×720</option>
+      <option value="720x1280">📱 720×1280</option>
+      <option value="600x800">🎨 600×800</option>
+    </select>
     <button class="wp-btn fs-btn" onclick="toggleFullscreen()" id="fs-btn" title="Fullscreen">⛶</button>
     <button class="wp-btn primary" onclick="submitToGallery()">📤 Submit</button>
   </div>
@@ -199,14 +229,15 @@ const ctx    = canvas.getContext('2d');
 const wrap   = document.getElementById('canvas-wrap');
 
 // ---- State ----
-let strokes     = []; // [{pointsA, pointsB, color, size, eraser}]
-let curStroke   = null;
-let isDrawing   = false;
-let showB       = false;
-let eraserOn    = false;
-let boilTimer   = null;
-let lastGifUrl  = null;
-let isRecording = false;
+let strokes        = []; // [{pointsA, pointsB, color, size, eraser}]
+let curStroke      = null;
+let isDrawing      = false;
+let showB          = false;
+let eraserOn       = false;
+let boilTimer      = null;
+let lastGifUrl     = null;
+let isRecording    = false;
+let canvasSizeMode = 'auto'; // 'auto' | 'WxH'
 
 // ---- Controls ----
 const colorEl = document.getElementById('wp-color');
@@ -228,11 +259,35 @@ function toggleEraser(btn) {
     canvas.style.cursor = eraserOn ? 'cell' : 'crosshair';
 }
 
+// ---- Canvas size presets ----
+function applyCanvasSize(val) {
+    canvasSizeMode = val;
+    lastGifUrl = null;
+    strokes = [];
+    setStatus('Canvas cleared for new size.');
+    if (val === 'auto') {
+        canvas.style.width  = '';
+        canvas.style.height = '';
+        resizeCanvas();
+    } else {
+        const [w, h] = val.split('x').map(Number);
+        canvas.width  = w;
+        canvas.height = h;
+        // Let CSS scale it to fit the wrap via max-width/max-height
+        canvas.style.width  = w + 'px';
+        canvas.style.height = h + 'px';
+        redraw();
+    }
+}
+
 // ---- Resize ----
 function resizeCanvas() {
+    if (canvasSizeMode !== 'auto') return; // fixed size — don't override
     const rect = wrap.getBoundingClientRect();
     canvas.width  = Math.max(1, Math.floor(rect.width));
     canvas.height = Math.max(1, Math.floor(rect.height));
+    canvas.style.width  = '';
+    canvas.style.height = '';
     redraw();
 }
 
