@@ -55,7 +55,7 @@ async function dbInit() {
         (comments || []).forEach(c => {
             const key = String(c.art_id);
             if (!_comments[key]) _comments[key] = [];
-            _comments[key].push({ id: c.id, text: c.text, date: c.date });
+            _comments[key].push({ id: c.id, text: c.text, date: c.date, is_owner: !!c.is_owner });
         });
 
         // Reactions: group by art_id
@@ -161,19 +161,19 @@ function _dbErr(op, error) {
 // COMMENTS
 // ──────────────────────────────────────────────────────────────
 
-async function dbAddComment(artId, text) {
+async function dbAddComment(artId, text, isOwner = false) {
     const id   = String(Date.now() + Math.floor(Math.random() * 1000));
     const date = new Date().toISOString();
     const key  = String(artId);
 
     // Update cache immediately
     if (!_comments[key]) _comments[key] = [];
-    _comments[key].push({ id, text, date });
+    _comments[key].push({ id, text, date, is_owner: !!isOwner });
 
     // Persist to Supabase
-    const { error } = await _db.from('comments').insert({ id, art_id: key, text, date });
+    const { error } = await _db.from('comments').insert({ id, art_id: key, text, date, is_owner: !!isOwner });
     _dbErr('addComment', error);
-    return { id, text, date };
+    return { id, text, date, is_owner: !!isOwner };
 }
 
 async function dbDeleteComment(commentId) {
