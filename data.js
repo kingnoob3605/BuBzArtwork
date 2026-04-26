@@ -3,7 +3,7 @@
 // =============================================
 const SITE_CONFIG = {
   title: "✦ My Gallery ✦", // Tab title
-  logoText: "✦ Gallery ✦", // Header logo
+  logoText: "✦ BuBz's Social ✦", // Header logo
   aboutText:
     "Hi! Welcome to my art gallery. I post my art here — both SFW and NSFW. Feel free to look around and send me something!",
 };
