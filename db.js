@@ -155,7 +155,9 @@ function getPollVotes(postId)  { return _pollVotes[String(postId)] || {}; }
 
 // ── Internal: log DB errors without crashing ──────────────────
 function _dbErr(op, error) {
-    if (error) console.error(`[db] ${op}:`, error.message || error);
+    if (!error) return;
+    console.error(`[db] ${op}:`, error.message || error);
+    if (typeof showToast === 'function') showToast('Something went wrong — please try again 😿');
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -166,15 +168,20 @@ async function dbAddComment(artId, text, isOwner = false) {
     const id   = String(Date.now() + Math.floor(Math.random() * 1000));
     const date = new Date().toISOString();
     const key  = String(artId);
+    const entry = { id, text, date, is_owner: !!isOwner };
 
-    // Update cache immediately
+    // Optimistic cache update
     if (!_comments[key]) _comments[key] = [];
-    _comments[key].push({ id, text, date, is_owner: !!isOwner });
+    _comments[key].push(entry);
 
-    // Persist to Supabase
+    // Persist to Supabase — rollback on failure
     const { error } = await _db.from('comments').insert({ id, art_id: key, text, date, is_owner: !!isOwner });
-    _dbErr('addComment', error);
-    return { id, text, date, is_owner: !!isOwner };
+    if (error) {
+        _comments[key] = _comments[key].filter(c => c.id !== id);
+        _dbErr('addComment', error);
+        return null;
+    }
+    return entry;
 }
 
 async function dbDeleteComment(commentId) {
@@ -351,11 +358,20 @@ async function dbAddReply(postId, text, sender, isOwner = false) {
     const id        = String(Date.now() + Math.floor(Math.random() * 1000));
     const timestamp = new Date().toISOString();
     const key       = String(postId);
+    const entry     = { id, text, sender, timestamp, is_owner: !!isOwner };
+
+    // Optimistic cache update
     if (!_replies[key]) _replies[key] = [];
-    _replies[key].push({ id, text, sender, timestamp, is_owner: !!isOwner });
+    _replies[key].push(entry);
+
+    // Persist to Supabase — rollback on failure
     const { error } = await _db.from('wall_replies').insert({ id, post_id: key, text, sender, timestamp, is_owner: !!isOwner });
-    _dbErr('addReply', error);
-    return { id, text, sender, timestamp, is_owner: !!isOwner };
+    if (error) {
+        _replies[key] = _replies[key].filter(r => r.id !== id);
+        _dbErr('addReply', error);
+        return null;
+    }
+    return entry;
 }
 
 async function dbDeleteReply(replyId) {

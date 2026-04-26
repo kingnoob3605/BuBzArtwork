@@ -477,6 +477,7 @@ function closeLightbox() {
       document.getElementById("lightbox").classList.remove("open");
       document.body.style.overflow = "";
       currentArtwork = null;
+      currentImageIndex = 0;
       gsap.set(".lightbox-inner", { y: 0, opacity: 1, scale: 1 });
     },
   });
@@ -1666,9 +1667,6 @@ const SUBMIT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SUBMIT_COOLDOWN_KEY = "last-submit-ts";
 
 function checkSubmitCooldown() {
-  // TEMP: cooldown disabled for bug testing — re-enable before going live
-  return true;
-  /* original cooldown (24h):
   const last = parseInt(localStorage.getItem(SUBMIT_COOLDOWN_KEY) || "0", 10);
   const diff = Date.now() - last;
   if (last && diff < SUBMIT_COOLDOWN_MS) {
@@ -1681,7 +1679,6 @@ function checkSubmitCooldown() {
   }
   localStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now()));
   return true;
-  */
 }
 
 // ─── Comment cooldown: 5 seconds (prevents double-post, not annoying) ────
@@ -2425,7 +2422,7 @@ function sendCurrentDrawing() {
   if (_drawMode === "wiggly") {
     const iframe = document.getElementById("wiggly-iframe");
     if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: "trigger-submit" }, "*");
+      iframe.contentWindow.postMessage({ type: "trigger-submit" }, window.location.origin);
     }
   } else {
     submitDrawing();
@@ -2433,6 +2430,7 @@ function sendCurrentDrawing() {
 }
 
 window.addEventListener("message", async (e) => {
+  if (e.origin !== window.location.origin) return;
   if (!e.data || e.data.type !== "wiggly-submit") return;
   const dataUrl = e.data.dataUrl;
   if (!dataUrl) return;
