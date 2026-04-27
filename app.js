@@ -893,6 +893,14 @@ async function deleteComment(artId, commentId) {
   renderComments(artId);
 }
 
+function isBubzName(name) {
+  return name && /bubz/i.test(name.trim());
+}
+
+function showBubzNameWarning() {
+  showToast("nah bro you ain't slick 💀 that name's taken, pick another one lol");
+}
+
 function isBannedLocal(text) {
   const lower = text.toLowerCase();
   return BANNED_WORDS.some((w) => {
@@ -1206,14 +1214,14 @@ function renderWall() {
         </div>`;
 
         if (post.type === 'drawing') {
-            return `<div class="wall-card" onclick="openWallPost('${post.id}')">
+            return `<div class="wall-card" data-id="${post.id}" onclick="openWallPost('${post.id}')">
                 <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
                 ${miniFooter}
             </div>`;
         } else if (post.type === 'poll') {
             let question = '';
             try { question = JSON.parse(post.data).question; } catch {}
-            return `<div class="wall-card wall-card-poll-thumb" onclick="openWallPost('${post.id}')">
+            return `<div class="wall-card wall-card-poll-thumb" data-id="${post.id}" onclick="openWallPost('${post.id}')">
                 <div class="wall-card-poll-preview">
                     <span class="wall-poll-thumb-icon">📊</span>
                     <p class="wall-poll-thumb-q">${escHtml(question.slice(0, 80))}${question.length > 80 ? '…' : ''}</p>
@@ -1221,12 +1229,21 @@ function renderWall() {
                 ${miniFooter}
             </div>`;
         } else {
-            return `<div class="wall-card" onclick="openWallPost('${post.id}')">
+            return `<div class="wall-card" data-id="${post.id}" onclick="openWallPost('${post.id}')">
                 <div class="wall-card-text">${escHtml(post.data.slice(0, 120))}${post.data.length > 120 ? '…' : ''}</div>
                 ${miniFooter}
             </div>`;
         }
     }).join('');
+}
+
+function removeWallCard(id) {
+    const card = document.querySelector(`#wall-grid [data-id="${id}"]`);
+    if (card) card.remove();
+    const grid = document.getElementById('wall-grid');
+    if (grid && !grid.querySelector('.wall-card')) {
+        grid.innerHTML = '<div class="wall-empty"><span>🌸</span><p>No public posts yet! Be the first to share something! ✨</p></div>';
+    }
 }
 
 // ── Reply functions ────────────────────────────
@@ -1261,7 +1278,9 @@ async function postReply(postId) {
     try {
         const sel   = document.getElementById('reply-anon-' + postId);
         const named = sel?.value === '__named__';
-        const name  = adminLoggedIn ? 'BuBz' : (named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null);
+        const replyName = named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null;
+        if (!adminLoggedIn && isBubzName(replyName)) { showBubzNameWarning(); return; }
+        const name  = adminLoggedIn ? 'BuBz' : replyName;
 
         await dbAddReply(postId, text, name, adminLoggedIn);
         input.value = '';
@@ -1551,14 +1570,14 @@ async function deletePublicPost(id) {
   if (!adminLoggedIn) return;
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
-  renderWall();
+  removeWallCard(id);
 }
 
 async function deleteWallPostFromLightbox(id) {
   if (!adminLoggedIn) return;
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
-  renderWall();
+  removeWallCard(id);
   closeWallPost();
 }
 
@@ -1566,7 +1585,7 @@ async function deleteWallPostFromAdmin(id) {
   if (!adminLoggedIn) return;
   if (!confirm("Delete this public post?")) return;
   await dbDeletePublicPost(id);
-  renderWall();
+  removeWallCard(id);
   renderSubmissions();
 }
 
@@ -1769,12 +1788,15 @@ async function submitDrawing() {
   const btn = document.getElementById('draw-send-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
 
+  const drawSender = getSenderName("draw");
+  if (isBubzName(drawSender)) { showBubzNameWarning(); if (btn) { btn.disabled = false; btn.textContent = 'Send Drawing ✨'; } return; }
+
   try {
     const imageUrl = await _cloudinaryUpload(safeCanvasDataUrl(canvas), 'bubz/submissions');
     const entry = {
       id: String(Date.now() + Math.floor(Math.random() * 1000)),
       type: "drawing", data: imageUrl,
-      sender: getSenderName("draw"), timestamp: new Date().toISOString(),
+      sender: drawSender, timestamp: new Date().toISOString(),
       requestedVis: getVisibility("draw"),
     };
     await savePending(entry);
@@ -1793,6 +1815,8 @@ async function submitMessage() {
   const ta = document.getElementById("message-textarea");
   const text = ta.value.trim();
   if (!text) { showToast("Please write something first! 💬"); return; }
+  const msgSender = getSenderName("message");
+  if (isBubzName(msgSender)) { showBubzNameWarning(); return; }
 
   const btn = document.querySelector('#send-tab-message .btn-send');
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
@@ -1800,7 +1824,7 @@ async function submitMessage() {
   const entry = {
     id: String(Date.now() + Math.floor(Math.random() * 1000)),
     type: "message", data: text,
-    sender: getSenderName("message"), timestamp: new Date().toISOString(),
+    sender: msgSender, timestamp: new Date().toISOString(),
     requestedVis: getVisibility("message"),
   };
   try {
@@ -2155,9 +2179,6 @@ async function handleArtFiles(files) {
     const status = document.getElementById('art-upload-status');
     status.textContent = `Uploading ${files.length} image(s)…`;
 
-    console.log(`[Cloudinary] Starting upload of ${files.length} file(s)`);
-    console.log(`[Cloudinary] Cloud: ${CLOUDINARY_CLOUD}, Preset: ${CLOUDINARY_PRESET}`);
-
     for (const file of files) {
         const card = document.createElement('div');
         card.className = 'preview-card';
@@ -2171,13 +2192,9 @@ async function handleArtFiles(files) {
         card.appendChild(badge);
         grid.appendChild(card);
 
-        console.log(`[Cloudinary] Processing file: ${file.name} (${(file.size / 1024).toFixed(2)} KB, type: ${file.type})`);
-
         try {
             const folder = file.type === 'image/gif' ? 'bubz/gifs' : 'bubz/gallery';
-            console.log(`[Cloudinary] Uploading ${file.name} → folder: ${folder}`);
             const url = await _cloudinaryUpload(file, folder);
-            console.log(`[Cloudinary] ✅ ${url}`);
             const inp = document.createElement('input');
             inp.type = 'url'; inp.className = 'batch-url'; inp.value = url;
             document.getElementById('batch-url-list').appendChild(inp);
@@ -2197,7 +2214,6 @@ async function handleArtFiles(files) {
         ? `✅ ${done} image(s) ready — fill in the title and hit Add!`
         : `⚠️ ${done} uploaded, ${failed} failed`;
 
-    console.log(`[Cloudinary] Upload batch complete: ${done} done, ${failed} failed`);
 }
 
 function addUrlField() {
@@ -2389,7 +2405,7 @@ async function adminDeleteWallPost(id) {
   if (!adminLoggedIn) return;
   if (!confirm('Delete this wall post and all its replies?')) return;
   await dbDeletePublicPost(id);
-  renderWall();
+  removeWallCard(id);
   renderSubmissions();
   const card = document.getElementById(`admin-wall-post-${id}`);
   if (card) card.remove();
