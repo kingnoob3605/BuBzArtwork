@@ -353,7 +353,12 @@
               id="message-textarea"
               class="message-textarea"
               placeholder="Write me something sweet… or spicy 🌶️&#10;&#10;You can sign it or stay anonymous!"
+              maxlength="500"
+              oninput="updateMsgCounter(this)"
             ></textarea>
+            <div class="comment-input-meta">
+              <span id="msg-char-counter" class="comment-char-counter">0/500</span>
+            </div>
 
             <div class="visibility-row" id="message-visibility-row">
               <span class="visibility-label">Post as</span>
