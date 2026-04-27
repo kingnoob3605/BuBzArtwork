@@ -1636,6 +1636,11 @@ nav {
     .reply-text { font-size: 0.7rem; }
 }
 
+@keyframes wallCardIn {
+    from { opacity: 0; transform: translateY(18px) rotate(var(--card-rot, 0deg)) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0)    rotate(var(--card-rot, 0deg)) scale(1); }
+}
+
 .wall-card {
     break-inside: avoid;
     margin-bottom: 1.5rem;
@@ -1650,12 +1655,15 @@ nav {
         0 2px 4px rgba(0,0,0,0.25),
         0 10px 20px -4px rgba(0,0,0,0.4);
     padding-bottom: 2px;
+    animation: wallCardIn 0.35s ease both;
 }
-.wall-card:nth-child(5n+1) { transform: rotate(-1.4deg); background: var(--paper); }
-.wall-card:nth-child(5n+2) { transform: rotate(0.8deg);  background: #fff4da; }
-.wall-card:nth-child(5n+3) { transform: rotate(-0.6deg); background: #f8e8d0; }
-.wall-card:nth-child(5n+4) { transform: rotate(1.5deg);  background: #feecd8; }
-.wall-card:nth-child(5n+5) { transform: rotate(-0.9deg); background: #fff1df; }
+.wall-card:nth-child(5n+1) { --card-rot:-1.4deg; transform: rotate(-1.4deg); background: var(--paper); animation-delay: 0.03s; }
+.wall-card:nth-child(5n+2) { --card-rot: 0.8deg; transform: rotate(0.8deg);  background: #fff4da;       animation-delay: 0.06s; }
+.wall-card:nth-child(5n+3) { --card-rot:-0.6deg; transform: rotate(-0.6deg); background: #f8e8d0;       animation-delay: 0.09s; }
+.wall-card:nth-child(5n+4) { --card-rot: 1.5deg; transform: rotate(1.5deg);  background: #feecd8;       animation-delay: 0.12s; }
+.wall-card:nth-child(5n+5) { --card-rot:-0.9deg; transform: rotate(-0.9deg); background: #fff1df;       animation-delay: 0.15s; }
+
+.reply-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .wall-card:hover {
     transform: translateY(-8px) rotate(0deg) scale(1.03);
@@ -2010,7 +2018,7 @@ nav {
 .wall-lb-poll-wrap .poll-total    { color: rgba(58,42,32,0.55); font-size: 0.8rem; margin-top: 4px; }
 
 .wall-lb-right {
-    flex: 0 0 300px;
+    flex: 0 0 310px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -2018,6 +2026,7 @@ nav {
     gap: 0.7rem;
     border-left: 1px solid var(--card-border);
     background: linear-gradient(180deg, var(--card), var(--bg));
+    min-height: 0;
 }
 
 .wall-replies-wrap {

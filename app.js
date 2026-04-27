@@ -1008,6 +1008,15 @@ function updateCommentCounter(input) {
   counter.classList.toggle("over", len > COMMENT_MAX_CHARS);
 }
 
+function updateMsgCounter(textarea) {
+  const counter = document.getElementById("msg-char-counter");
+  if (!counter) return;
+  const len = textarea.value.length;
+  const max = parseInt(textarea.maxLength) || 500;
+  counter.textContent = `${len}/${max}`;
+  counter.classList.toggle("over", len >= max);
+}
+
 function onCommentKeydown(e) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -1126,7 +1135,7 @@ function buildPollHtml(post) {
         const pct   = total > 0 ? Math.round((count / total) * 100) : 0;
         const isMe  = voted && userVote === i;
         return `<button class="poll-option${isMe ? ' my-vote' : ''}" onclick="votePoll('${post.id}',${i})" ${voted ? 'disabled' : ''}>
-            <div class="poll-bar" style="width:${voted ? pct : 0}%"></div>
+            <div class="poll-bar" style="width:0%" data-target="${voted ? pct : 0}"></div>
             <span class="poll-opt-text">${escHtml(opt)}</span>
             ${voted ? `<span class="poll-opt-pct">${pct}%</span>` : ''}
         </button>`;
@@ -1236,37 +1245,46 @@ document.addEventListener('change', e => {
     if (nameInput) nameInput.style.display = e.target.value === '__named__' ? 'block' : 'none';
 });
 
+let _replyPosting = false;
 async function postReply(postId) {
-    const input  = document.getElementById('reply-input-' + postId);
-    const text   = input?.value.trim();
+    if (_replyPosting) return;
+    const input   = document.getElementById('reply-input-' + postId);
+    const text    = input?.value.trim();
     if (!text) return;
     if (isBanned(text)) { showSassyBannedPopup(); input.value = ''; return; }
 
-    const sel    = document.getElementById('reply-anon-' + postId);
-    const named  = sel?.value === '__named__';
-    const name   = adminLoggedIn ? 'BuBz' : (named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null);
+    const sendBtn = document.querySelector(`#reply-row-${postId} .reply-send-btn`);
+    _replyPosting = true;
+    if (input)   { input.disabled = true; }
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '…'; }
 
-    await dbAddReply(postId, text, name, adminLoggedIn);
-    input.value = '';
+    try {
+        const sel   = document.getElementById('reply-anon-' + postId);
+        const named = sel?.value === '__named__';
+        const name  = adminLoggedIn ? 'BuBz' : (named ? (document.getElementById('reply-name-' + postId)?.value.trim() || null) : null);
 
-    // Auto-close the input row
-    const row = document.getElementById('reply-row-' + postId);
-    if (row) row.style.display = 'none';
+        await dbAddReply(postId, text, name, adminLoggedIn);
+        input.value = '';
 
-    // Refresh replies in-place
-    const repliesEl = document.getElementById('replies-' + postId);
-    if (repliesEl) {
-        repliesEl.innerHTML = buildRepliesHtml(postId);
-        // Scroll to bottom so new reply is visible
-        repliesEl.scrollTop = repliesEl.scrollHeight;
+        const row = document.getElementById('reply-row-' + postId);
+        if (row) row.style.display = 'none';
+
+        const repliesEl = document.getElementById('replies-' + postId);
+        if (repliesEl) {
+            repliesEl.innerHTML = buildRepliesHtml(postId);
+            repliesEl.scrollTop = repliesEl.scrollHeight;
+        }
+        const toggleBtn = repliesEl?.closest('.wall-replies-wrap')?.querySelector('.reply-toggle-btn');
+        if (toggleBtn) {
+            const count = getReplies(postId).length;
+            toggleBtn.textContent = `↩ ${count} Repl${count === 1 ? 'y' : 'ies'}`;
+        }
+        showToast(adminLoggedIn ? 'Reply posted as BuBz 👑✨' : 'Reply sent! ✨');
+    } finally {
+        _replyPosting = false;
+        if (input)   { input.disabled = false; input.focus(); }
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send ✨'; }
     }
-    // Update reply button count
-    const toggleBtn = repliesEl?.closest('.wall-replies-wrap')?.querySelector('.reply-toggle-btn');
-    if (toggleBtn) {
-        const count = getReplies(postId).length;
-        toggleBtn.textContent = `↩ ${count} Repl${count === 1 ? 'y' : 'ies'}`;
-    }
-    showToast(adminLoggedIn ? 'Reply posted as BuBz 👑✨' : 'Reply sent! ✨');
 }
 
 async function deleteReply(replyId) {
@@ -1279,17 +1297,27 @@ async function deleteReply(replyId) {
 }
 
 // ── Poll functions ─────────────────────────────
+function animatePollBars(container) {
+    requestAnimationFrame(() => {
+        container.querySelectorAll('.poll-bar').forEach(bar => {
+            bar.style.width = (bar.dataset.target || 0) + '%';
+        });
+    });
+}
+
 async function votePoll(postId, optionIdx) {
     const voted = await dbVotePoll(postId, optionIdx);
-    if (!voted) return; // already voted
+    if (!voted) return;
     const post = getPublicPosts().find(p => p.id === postId);
     if (!post) return;
-    // Update poll inside the wall lightbox if it's open for this post
     if (currentWallPost && currentWallPost.id === postId) {
         const contentEl = document.getElementById('wlb-content');
         if (contentEl) {
             const wrap = contentEl.querySelector('.wall-lb-poll-wrap');
-            if (wrap) wrap.innerHTML = buildPollHtml(post);
+            if (wrap) {
+                wrap.innerHTML = buildPollHtml(post);
+                animatePollBars(wrap);
+            }
         }
     }
 }
@@ -1484,6 +1512,12 @@ function openWallPost(id) {
     const lb = document.getElementById('wall-lightbox');
     lb.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    // Animate poll bars after render
+    if (post.type === 'poll') {
+        const wrap = document.querySelector('#wlb-content .wall-lb-poll-wrap');
+        if (wrap) animatePollBars(wrap);
+    }
 
     if (typeof gsap !== 'undefined') {
         gsap.fromTo('.wall-lb-inner',
