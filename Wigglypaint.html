@@ -2,73 +2,250 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>WigglyPaint ✦</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      background: #fdf6f0;
-      font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-      user-select: none;
+    :root {
+      --bg-chrome: #1a1128;
+      --bg-chrome2: #231830;
+      --accent:    #ef745c;
+      --accent2:   #9b72cf;
+      --text:      #f0e4ff;
+      --text-dim:  rgba(240,228,255,0.5);
+      --sep:       rgba(255,255,255,0.1);
+      --btn-idle:  rgba(255,255,255,0.08);
+      --btn-hover: rgba(255,255,255,0.15);
+      --radius:    10px;
+      --toolbar-h: 54px;
+      --bottom-h:  52px;
     }
 
-    /* ---- Toolbar ---- */
-    #toolbar {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 10px;
-      background: #fff4ec;
-      border-bottom: 2px dashed #e8c9b0;
-      flex-wrap: wrap;
-      flex-shrink: 0;
+    html, body {
+      height: 100%;
+      background: #0e0918;
+      font-family: 'Caveat', cursive;
+      overflow: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    .ctrl {
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ═══════════════════════════════════
+       TOP TOOLBAR
+    ═══════════════════════════════════ */
+    #toolbar {
+      height: var(--toolbar-h);
+      background: var(--bg-chrome);
+      border-bottom: 1px solid var(--sep);
       display: flex;
       align-items: center;
       gap: 4px;
-      font-size: 0.78rem;
-      color: #7a5c44;
-      white-space: nowrap;
+      padding: 0 8px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 30;
     }
-    .ctrl input[type=color] {
-      width: 30px; height: 26px;
-      border: 1.5px solid #d4b09a;
-      padding: 1px; border-radius: 5px;
-      cursor: pointer; background: none;
-    }
-    .ctrl input[type=range] {
-      width: 64px;
-      accent-color: #e88c72;
-      cursor: pointer;
-    }
-    .ctrl span { font-size: 0.72rem; color: #b09080; min-width: 20px; text-align: center; }
-    .sep { width: 1px; height: 18px; background: #e0c8b8; flex-shrink: 0; }
 
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .sep {
+      width: 1px;
+      height: 26px;
+      background: var(--sep);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* Generic button */
     .wp-btn {
-      padding: 5px 11px;
-      border: 1.5px solid #d4a088;
-      background: #fff;
-      color: #7a5c44;
-      border-radius: 20px;
-      font-size: 0.76rem;
+      min-width: 40px;
+      height: 40px;
+      padding: 0 12px;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--btn-idle);
+      color: var(--text);
+      font-family: 'Caveat', cursive;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      transition: background 0.12s, transform 0.08s;
       white-space: nowrap;
-      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
-    .wp-btn:hover { background: #ffe8dd; border-color: #e88c72; }
-    .wp-btn.danger { border-color: #e07070; color: #c05050; }
-    .wp-btn.danger:hover { background: #ffe0e0; }
-    .wp-btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
-    .wp-btn.active { background: #ffe8dd; border-color: #e88c72; font-weight: 600; }
+    .wp-btn:hover   { background: var(--btn-hover); }
+    .wp-btn:active  { transform: scale(0.92); }
+    .wp-btn.active  { background: var(--accent); color: #fff; }
+    .wp-btn.danger  { color: #ff8080; }
+    .wp-btn.danger:hover { background: rgba(255,80,80,0.15); }
+    .wp-btn:disabled { opacity: 0.35; pointer-events: none; }
 
-    /* ---- Canvas ---- */
+    /* Icon-only square */
+    .wp-btn.icon { width: 40px; min-width: 40px; padding: 0; font-size: 1.1rem; }
+
+    /* ── Color swatches ── */
+    .swatch-wrap {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+    .swatch {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.25);
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .swatch:hover  { border-color: rgba(255,255,255,0.55); }
+    .swatch:active { transform: scale(0.9); }
+    .swatch-wrap input[type=color] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+      border: none; padding: 0;
+    }
+    .swatch-label {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 2px;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .swatch-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    /* ── Size button + popup ── */
+    #size-btn {
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 8px;
+    }
+    #size-dot {
+      background: var(--text);
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: width 0.15s, height 0.15s;
+    }
+    #size-val {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1;
+    }
+
+    /* ═══════════════════════════════════
+       POPUPS (size + settings)
+    ═══════════════════════════════════ */
+    .popup {
+      position: absolute;
+      top: calc(var(--toolbar-h) + 6px);
+      left: 8px;
+      background: var(--bg-chrome2);
+      border: 1px solid var(--sep);
+      border-radius: 14px;
+      padding: 14px 16px;
+      z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 220px;
+      animation: popupIn 0.18s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    .popup.hidden { display: none; }
+    @keyframes popupIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .popup-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .popup-label {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      min-width: 48px;
+    }
+    .popup input[type=range] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 6px;
+      cursor: pointer;
+    }
+    .popup-val {
+      font-size: 0.85rem;
+      color: var(--text);
+      min-width: 24px;
+      text-align: right;
+    }
+
+    /* Boil presets */
+    .boil-presets {
+      display: flex;
+      gap: 6px;
+    }
+    .boil-btn {
+      flex: 1;
+      height: 34px;
+      border: 1.5px solid var(--sep);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: 'Caveat', cursive;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .boil-btn:hover  { border-color: var(--accent); color: var(--text); }
+    .boil-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Canvas size chips */
+    .size-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .size-chip {
+      padding: 4px 10px;
+      border: 1.5px solid var(--sep);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: 'Caveat', cursive;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .size-chip:hover  { border-color: var(--accent); color: var(--text); }
+    .size-chip.active { background: rgba(239,116,92,0.2); border-color: var(--accent); color: var(--text); }
+
+    /* ═══════════════════════════════════
+       CANVAS AREA
+    ═══════════════════════════════════ */
     #canvas-wrap {
       flex: 1;
       position: relative;
@@ -77,19 +254,26 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #e8d8cc;
+      background:
+        radial-gradient(ellipse at 30% 40%, rgba(155,114,207,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 60%, rgba(239,116,92,0.06) 0%, transparent 60%),
+        #0e0918;
     }
+
     #wp-canvas {
       display: block;
       touch-action: none;
-      /* cursor managed by JS — set to 'none' for brush/eraser, crosshair for fill */
       cursor: none;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
       max-width: 100%;
       max-height: 100%;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 4px 24px rgba(0,0,0,0.5),
+        0 16px 48px rgba(0,0,0,0.35);
     }
+    #wp-canvas.tool-fill { cursor: crosshair; }
 
-    /* ---- Brush cursor ring ---- */
+    /* Brush cursor ring */
     #brush-cursor {
       position: absolute;
       border-radius: 50%;
@@ -98,188 +282,279 @@
       display: none;
       z-index: 20;
       box-sizing: border-box;
-      /* transition for smooth size change when slider moves */
       transition: width 0.08s, height 0.08s;
     }
 
-    /* ---- Action bar ---- */
-    #actions {
-      display: flex;
-      gap: 8px;
-      padding: 7px 10px;
-      background: #fff4ec;
-      border-top: 2px dashed #e8c9b0;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-    .action-left  { display: flex; gap: 6px; align-items: center; min-width: 0; }
-    .action-right { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-
-    .wp-btn.gif-btn {
-      background: #9b72cf;
-      border-color: #9b72cf;
-      color: #fff;
-      font-weight: 600;
-    }
-    .wp-btn.gif-btn:hover { background: #8560bb; border-color: #8560bb; }
-
-    .wp-btn.primary {
-      background: #e88c72;
-      border-color: #e88c72;
-      color: #fff;
-      font-weight: 600;
-    }
-    .wp-btn.primary:hover { background: #d4785e; border-color: #d4785e; }
-
-    .wp-btn.fs-btn { padding: 5px 8px; font-size: 0.9rem; }
-
-    /* ---- Size picker ---- */
-    #size-picker {
-      padding: 4px 8px;
-      border: 1.5px solid #d4a088;
-      background: #fff;
-      color: #7a5c44;
-      border-radius: 20px;
-      font-size: 0.74rem;
-      cursor: pointer;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    #size-picker:hover, #size-picker:focus { border-color: #e88c72; }
-
-    #status {
-      font-size: 0.72rem;
-      color: #9b72cf;
-      font-style: italic;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    /* Status toast on canvas */
+    #toast {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26,17,40,0.9);
+      border: 1px solid var(--sep);
+      color: var(--text);
+      font-family: 'Caveat', cursive;
+      font-size: 1rem;
+      padding: 7px 18px;
+      border-radius: 30px;
       white-space: nowrap;
-      max-width: 200px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 50;
+      backdrop-filter: blur(8px);
     }
+    #toast.show { opacity: 1; }
 
-    /* ---- Progress ---- */
+    /* ═══════════════════════════════════
+       PROGRESS BAR
+    ═══════════════════════════════════ */
     #progress-wrap {
       display: none;
       position: absolute;
-      bottom: 50px; left: 0; right: 0;
-      height: 4px;
-      background: #e8d4f0;
-      z-index: 10;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      z-index: 60;
     }
     #progress-bar {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #9b72cf, #e88c72);
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
       transition: width 0.12s;
     }
 
-    /* ---- Fill cursor (crosshair) ---- */
-    #wp-canvas.tool-fill { cursor: crosshair; }
+    /* ═══════════════════════════════════
+       BOTTOM ACTION BAR
+    ═══════════════════════════════════ */
+    #actions {
+      height: var(--bottom-h);
+      background: var(--bg-chrome);
+      border-top: 1px solid var(--sep);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 30;
+    }
+
+    #actions .spacer { flex: 1; }
+
+    .wp-btn.gif-btn {
+      background: rgba(155,114,207,0.25);
+      color: #c8a8ff;
+      border: 1px solid rgba(155,114,207,0.4);
+    }
+    .wp-btn.gif-btn:hover { background: rgba(155,114,207,0.4); }
+
+    .wp-btn.primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .wp-btn.primary:hover { background: #d4634e; }
+
+    /* Overlay to close popups */
+    #popup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+    }
+    #popup-overlay.show { display: block; }
   </style>
 </head>
 <body>
 
+<!-- ── Popup close overlay ── -->
+<div id="popup-overlay" onclick="closeAllPopups()"></div>
+
+<!-- ═══════════════════ TOP TOOLBAR ═══════════════════ -->
 <div id="toolbar">
-  <!-- Color -->
-  <label class="ctrl" title="Color">
-    🎨 <input type="color" id="wp-color" value="#2d2d2d">
-  </label>
+
+  <!-- Color swatch -->
+  <div class="swatch-group">
+    <div class="swatch-wrap" title="Draw color">
+      <div class="swatch" id="color-swatch" style="background:#2d2d2d"></div>
+      <input type="color" id="wp-color" value="#2d2d2d">
+    </div>
+    <div class="swatch-label">color</div>
+  </div>
+
+  <!-- BG color swatch -->
+  <div class="swatch-group">
+    <div class="swatch-wrap" title="Canvas background">
+      <div class="swatch" id="bg-swatch" style="background:#fdf6f0"></div>
+      <input type="color" id="wp-bg" value="#fdf6f0">
+    </div>
+    <div class="swatch-label">bg</div>
+  </div>
+
+  <!-- Size button -->
+  <button class="wp-btn icon" id="size-btn" onclick="togglePopup('size')" title="Brush size">
+    <div id="size-dot" style="width:8px;height:8px"></div>
+    <span id="size-val">4</span>
+  </button>
+
   <div class="sep"></div>
-  <!-- Size -->
-  <label class="ctrl" title="Brush size">
-    📏 <input type="range" id="wp-size" min="1" max="28" value="4">
-    <span id="size-label">4</span>
-  </label>
+
+  <!-- Tool group -->
+  <div class="tool-group">
+    <button class="wp-btn icon active" id="pen-btn"    onclick="setTool('brush')"  title="Pen">✏️</button>
+    <button class="wp-btn icon"        id="eraser-btn" onclick="setTool('eraser')" title="Eraser">🧽</button>
+    <button class="wp-btn icon"        id="fill-btn"   onclick="setTool('fill')"   title="Fill">🪣</button>
+  </div>
+
   <div class="sep"></div>
-  <!-- Boil strength -->
-  <label class="ctrl" title="Boil intensity — how much the lines wiggle">
-    🌀 <input type="range" id="wp-boil" min="0.2" max="4" step="0.1" value="1.6">
-    <span id="boil-label">1.6</span>
-  </label>
-  <div class="sep"></div>
-  <!-- BG -->
-  <label class="ctrl" title="Canvas background">
-    🖼 <input type="color" id="wp-bg" value="#fdf6f0">
-  </label>
-  <div class="sep"></div>
-  <!-- Tool buttons: mutually exclusive -->
-  <button class="wp-btn active" id="pen-btn"    onclick="setTool('brush')">✏️ Pen</button>
-  <button class="wp-btn"        id="eraser-btn" onclick="setTool('eraser')">🧽 Eraser</button>
-  <button class="wp-btn"        id="fill-btn"   onclick="setTool('fill')">🪣 Fill</button>
-  <div class="sep"></div>
-  <button class="wp-btn" onclick="wpUndo()">↩ Undo</button>
-  <button class="wp-btn danger" onclick="wpClear()">✕ Clear</button>
+
+  <!-- History -->
+  <div class="tool-group">
+    <button class="wp-btn icon" onclick="wpUndo()"  title="Undo">↩</button>
+    <button class="wp-btn icon danger" onclick="wpClear()" title="Clear">✕</button>
+  </div>
+
+  <!-- Settings gear (right-aligned) -->
+  <div style="flex:1"></div>
+  <button class="wp-btn icon" id="settings-btn" onclick="togglePopup('settings')" title="Settings">⚙️</button>
+
 </div>
 
+<!-- ── Size popup ── -->
+<div class="popup hidden" id="popup-size">
+  <div class="popup-row">
+    <span class="popup-label">Size</span>
+    <input type="range" id="wp-size" min="1" max="40" value="4">
+    <span class="popup-val" id="size-label">4</span>
+  </div>
+</div>
+
+<!-- ── Settings popup ── -->
+<div class="popup hidden" id="popup-settings" style="left:auto;right:8px">
+  <div class="popup-row">
+    <span class="popup-label">Wiggle</span>
+    <div class="boil-presets">
+      <button class="boil-btn" id="boil-calm"   onclick="setBoil(0.6, this)">Calm</button>
+      <button class="boil-btn active" id="boil-mid" onclick="setBoil(1.8, this)">Wiggly</button>
+      <button class="boil-btn" id="boil-chaos"  onclick="setBoil(3.8, this)">Chaos</button>
+    </div>
+  </div>
+  <input type="hidden" id="wp-boil" value="1.8">
+  <div class="popup-row">
+    <span class="popup-label">Canvas</span>
+    <div class="size-chips">
+      <button class="size-chip active" onclick="applyCanvasSize('auto', this)">Auto</button>
+      <button class="size-chip" onclick="applyCanvasSize('800x800', this)">800²</button>
+      <button class="size-chip" onclick="applyCanvasSize('1280x720', this)">16:9</button>
+      <button class="size-chip" onclick="applyCanvasSize('720x1280', this)">9:16</button>
+      <button class="size-chip" onclick="applyCanvasSize('600x800', this)">4:3</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CANVAS ═══════════════════ -->
 <div id="canvas-wrap">
   <canvas id="wp-canvas"></canvas>
   <div id="brush-cursor"></div>
+  <div id="toast"></div>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
 </div>
 
+<!-- ═══════════════════ BOTTOM BAR ═══════════════════ -->
 <div id="actions">
-  <div class="action-left">
-    <button class="wp-btn gif-btn" id="btn-gif" onclick="previewGif()">🌀 Preview</button>
-    <span id="status"></span>
-  </div>
-  <div class="action-right">
-    <select id="size-picker" title="Canvas size" onchange="applyCanvasSize(this.value)">
-      <option value="auto">🖥 Auto</option>
-      <option value="800x800">⬜ 800×800</option>
-      <option value="1280x720">🖼 1280×720</option>
-      <option value="720x1280">📱 720×1280</option>
-      <option value="600x800">🎨 600×800</option>
-    </select>
-    <button class="wp-btn fs-btn" onclick="toggleFullscreen()" id="fs-btn" title="Fullscreen">⛶</button>
-    <button class="wp-btn primary" onclick="submitToGallery()">📤 Submit</button>
-  </div>
+  <button class="wp-btn gif-btn" id="btn-gif" onclick="previewGif()">🌀 Preview</button>
+  <div class="spacer"></div>
+  <button class="wp-btn icon" onclick="toggleFullscreen()" id="fs-btn" title="Fullscreen">⛶</button>
+  <button class="wp-btn primary" onclick="submitToGallery()">📤 Submit</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script>
 // =============================================
 // WIGGLYPAINT — Line Boil implementation
-// Each stroke bakes Frame A (clean) + Frame B (tiny random offsets)
-// setInterval at 110ms alternates between them → Ed Edd n Eddy boil
+// Frame A (clean) + Frame B (boil offsets)
+// 110ms timer alternates → Ed Edd n Eddy boil
 // =============================================
 
 const canvas      = document.getElementById('wp-canvas');
 const ctx         = canvas.getContext('2d');
 const wrap        = document.getElementById('canvas-wrap');
 const brushCursor = document.getElementById('brush-cursor');
+const colorEl     = document.getElementById('wp-color');
+const sizeEl      = document.getElementById('wp-size');
+const boilEl      = document.getElementById('wp-boil');
+const bgEl        = document.getElementById('wp-bg');
 
 // ---- State ----
-let strokes        = []; // [{type:'stroke', pointsA, pointsB, color, size} | {type:'fill', x, y, rgb}]
+let strokes        = [];  // [{type:'stroke',...} | {type:'fill',...}]
 let curStroke      = null;
 let isDrawing      = false;
 let showB          = false;
 let eraserOn       = false;
-let currentTool    = 'brush'; // 'brush' | 'eraser' | 'fill'
+let currentTool    = 'brush';
 let boilTimer      = null;
 let lastGifUrl     = null;
 let isRecording    = false;
 let canvasSizeMode = 'auto';
-let lastCursorE    = null; // last pointer event for cursor refresh on slider change
+let lastCursorE    = null;
+let toastTimer     = null;
 
-// ---- Controls ----
-const colorEl = document.getElementById('wp-color');
-const sizeEl  = document.getElementById('wp-size');
-const boilEl  = document.getElementById('wp-boil');
-const bgEl    = document.getElementById('wp-bg');
+// ---- Accessors ----
+function getColor() { return colorEl.value; }
+function getSize()  { return parseInt(sizeEl.value, 10) || 4; }
+function getBoil()  { return parseFloat(boilEl.value) || 1.8; }
+function getBg()    { return bgEl.value; }
 
-sizeEl.addEventListener('input', () => {
-    document.getElementById('size-label').textContent = sizeEl.value;
+// ---- Swatch sync ----
+colorEl.addEventListener('input', () => {
+    document.getElementById('color-swatch').style.background = colorEl.value;
     if (lastCursorE) updateBrushCursor(lastCursorE);
 });
-boilEl.addEventListener('input', () => document.getElementById('boil-label').textContent = boilEl.value);
-colorEl.addEventListener('input', () => { if (lastCursorE) updateBrushCursor(lastCursorE); });
+bgEl.addEventListener('input', () => {
+    document.getElementById('bg-swatch').style.background = bgEl.value;
+    if (lastCursorE) updateBrushCursor(lastCursorE);
+    redraw(showB);
+});
+sizeEl.addEventListener('input', () => {
+    const v = sizeEl.value;
+    document.getElementById('size-label').textContent = v;
+    document.getElementById('size-val').textContent   = v;
+    // Scale dot: range 1-40 → 5-22px display
+    const px = Math.round(5 + (v - 1) / 39 * 17);
+    const dot = document.getElementById('size-dot');
+    dot.style.width  = px + 'px';
+    dot.style.height = px + 'px';
+    if (lastCursorE) updateBrushCursor(lastCursorE);
+});
 
-function getColor() { return colorEl.value; } // eraser color resolved at render time, not baked
-function getSize()  { return parseInt(sizeEl.value, 10) || 4; }
-function getBoil()  { return parseFloat(boilEl.value) || 1.6; }
-function getBg()    { return bgEl.value; }
+// ---- Boil presets ----
+function setBoil(val, btn) {
+    boilEl.value = val;
+    document.querySelectorAll('.boil-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
+// ---- Popup system ----
+function togglePopup(name) {
+    const sizeP     = document.getElementById('popup-size');
+    const settingsP = document.getElementById('popup-settings');
+    const overlay   = document.getElementById('popup-overlay');
+    const target    = name === 'size' ? sizeP : settingsP;
+    const other     = name === 'size' ? settingsP : sizeP;
+
+    other.classList.add('hidden');
+    const isOpen = !target.classList.contains('hidden');
+    target.classList.toggle('hidden', isOpen);
+    overlay.classList.toggle('show', !isOpen);
+}
+
+function closeAllPopups() {
+    document.getElementById('popup-size').classList.add('hidden');
+    document.getElementById('popup-settings').classList.add('hidden');
+    document.getElementById('popup-overlay').classList.remove('show');
+}
 
 // ---- Tool selection ----
 function setTool(tool) {
@@ -288,7 +563,6 @@ function setTool(tool) {
     document.getElementById('pen-btn').classList.toggle('active',    tool === 'brush');
     document.getElementById('eraser-btn').classList.toggle('active', tool === 'eraser');
     document.getElementById('fill-btn').classList.toggle('active',   tool === 'fill');
-    // Cursor: fill uses crosshair; brush/eraser uses custom circle (cursor:none)
     if (tool === 'fill') {
         canvas.style.cursor = 'crosshair';
         canvas.classList.add('tool-fill');
@@ -300,7 +574,7 @@ function setTool(tool) {
     }
 }
 
-// ---- Brush cursor overlay ----
+// ---- Brush cursor ----
 function updateBrushCursor(e) {
     lastCursorE = e;
     if (currentTool === 'fill') { brushCursor.style.display = 'none'; return; }
@@ -309,42 +583,39 @@ function updateBrushCursor(e) {
     const canvRect = canvas.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
 
-    // Position relative to canvas-wrap
     brushCursor.style.left = (src.clientX - wrapRect.left) + 'px';
     brushCursor.style.top  = (src.clientY - wrapRect.top)  + 'px';
 
-    // Scale logical brush size to CSS pixels
-    const scale   = canvRect.width / canvas.width;
-    const sizePx  = Math.max(4, getSize() * scale);
+    const scale  = canvRect.width / canvas.width;
+    const sizePx = Math.max(4, getSize() * scale);
     brushCursor.style.width  = sizePx + 'px';
     brushCursor.style.height = sizePx + 'px';
 
-    // Eraser: filled with bg color + dark border so user sees erase area
-    // Brush:  transparent ring tinted with draw color
     if (eraserOn) {
-        brushCursor.style.background    = getBg();
-        brushCursor.style.border        = '2px solid rgba(0,0,0,0.55)';
-        brushCursor.style.mixBlendMode  = 'normal';
+        brushCursor.style.background = getBg();
+        brushCursor.style.border     = '2px solid rgba(255,255,255,0.5)';
     } else {
-        brushCursor.style.background    = colorEl.value + '33'; // 20% fill tint
-        brushCursor.style.border        = '2px solid ' + colorEl.value;
-        brushCursor.style.mixBlendMode  = 'normal';
+        brushCursor.style.background = colorEl.value + '33';
+        brushCursor.style.border     = '2px solid ' + colorEl.value;
     }
-
     brushCursor.style.display = 'block';
 }
 
-// ---- Canvas size presets ----
-function applyCanvasSize(val) {
-    if (strokes.length > 0 && !confirm('Changing size will clear your drawing. Continue?')) {
-        const picker = document.getElementById('size-picker');
-        if (picker) picker.value = canvasSizeMode;
-        return;
+// ---- Canvas size ----
+function applyCanvasSize(val, chipEl) {
+    if (strokes.length > 0 && !confirm('Changing size will clear your drawing. Continue?')) return;
+
+    // Update chip active state
+    if (chipEl) {
+        document.querySelectorAll('.size-chip').forEach(c => c.classList.remove('active'));
+        chipEl.classList.add('active');
     }
+
     canvasSizeMode = val;
     lastGifUrl = null;
     strokes = [];
-    setStatus('Canvas cleared for new size.');
+    showToast('Canvas cleared ✦');
+
     if (val === 'auto') {
         canvas.style.width  = '';
         canvas.style.height = '';
@@ -357,6 +628,7 @@ function applyCanvasSize(val) {
         canvas.style.height = h + 'px';
         redraw();
     }
+    closeAllPopups();
 }
 
 // ---- Resize ----
@@ -370,9 +642,7 @@ function resizeCanvas() {
     redraw();
 }
 
-// ---- Pointer — FIXED for mobile scaling ----
-// When CSS max-width/max-height scales canvas down, coordinates must be
-// mapped from CSS pixels → logical canvas pixels via scale ratio.
+// ---- Pointer coords — accounts for CSS scaling ----
 function getPos(e) {
     const rect   = canvas.getBoundingClientRect();
     const src    = e.touches ? e.touches[0] : e;
@@ -388,6 +658,7 @@ function getPos(e) {
 function startDraw(e) {
     if (isRecording) return;
     e.preventDefault();
+    closeAllPopups();
     updateBrushCursor(e);
     const pos = getPos(e);
 
@@ -399,7 +670,7 @@ function startDraw(e) {
     isDrawing = true;
     curStroke = {
         points: [pos],
-        color:  eraserOn ? null : getColor(), // null = resolve bg at render time
+        color:  eraserOn ? null : getColor(),
         size:   getSize(),
         eraser: eraserOn
     };
@@ -421,7 +692,7 @@ function stopDraw() {
     isDrawing = false;
     if (!curStroke || curStroke.points.length === 0) { curStroke = null; return; }
 
-    const boil = getBoil();
+    const boil   = getBoil();
     const pointsB = curStroke.points.map(p => ({
         x: p.x + (Math.random() - 0.5) * boil * 2,
         y: p.y + (Math.random() - 0.5) * boil * 2
@@ -431,23 +702,23 @@ function stopDraw() {
         type:    'stroke',
         pointsA: curStroke.points,
         pointsB,
-        color:   curStroke.color,  // null if eraser
+        color:   curStroke.color,
         size:    curStroke.size,
-        eraser:  curStroke.eraser  // preserved so redraw() resolves color correctly
+        eraser:  curStroke.eraser
     });
     curStroke  = null;
     lastGifUrl = null;
-    setStatus('');
 }
 
 canvas.addEventListener('mousedown',  startDraw);
 canvas.addEventListener('mouseup',    stopDraw);
-canvas.addEventListener('mouseleave', (e) => { stopDraw(); brushCursor.style.display = 'none'; });
-canvas.addEventListener('mouseenter', (e) => { if (currentTool !== 'fill') updateBrushCursor(e); });
+canvas.addEventListener('mouseleave', e => { stopDraw(); brushCursor.style.display = 'none'; });
+canvas.addEventListener('mouseenter', e => { if (currentTool !== 'fill') updateBrushCursor(e); });
 canvas.addEventListener('mousemove',  moveDraw);
 canvas.addEventListener('touchstart', startDraw, { passive: false });
 canvas.addEventListener('touchmove',  moveDraw,  { passive: false });
 canvas.addEventListener('touchend',   stopDraw);
+canvas.addEventListener('touchcancel', stopDraw); // fix: cancel also ends stroke
 
 // ---- Fill tool ----
 function hexToRgb(hex) {
@@ -458,33 +729,27 @@ function hexToRgb(hex) {
     ];
 }
 
-// Flood fill stored as {type:'fill', x, y, rgb} — replayed each redraw
-// so pre-fill strokes still wiggle correctly in boil frames.
 function doFill(x, y) {
     strokes.push({ type: 'fill', x, y, rgb: hexToRgb(colorEl.value) });
     lastGifUrl = null;
     redraw(showB);
-    setStatus('');
 }
 
-// 4-connected stack flood fill on ImageData
 function floodFill(imageData, sx, sy, fillRGB) {
     const { data, width: w, height: h } = imageData;
     sx = Math.round(sx); sy = Math.round(sy);
     if (sx < 0 || sx >= w || sy < 0 || sy >= h) return;
 
     const i0  = (sy * w + sx) * 4;
-    const tR  = data[i0], tG = data[i0 + 1], tB = data[i0 + 2], tA = data[i0 + 3];
+    const tR  = data[i0], tG = data[i0+1], tB = data[i0+2], tA = data[i0+3];
     const [fR, fG, fB] = fillRGB;
-
-    // Bail if target already matches fill color
     if (tR === fR && tG === fG && tB === fB && tA === 255) return;
 
     const TOL   = 28;
     const match = i =>
-        Math.abs(data[i]     - tR) <= TOL &&
-        Math.abs(data[i + 1] - tG) <= TOL &&
-        Math.abs(data[i + 2] - tB) <= TOL;
+        Math.abs(data[i]   - tR) <= TOL &&
+        Math.abs(data[i+1] - tG) <= TOL &&
+        Math.abs(data[i+2] - tB) <= TOL;
 
     const visited = new Uint8Array(w * h);
     const stack   = [sy * w + sx];
@@ -495,19 +760,15 @@ function floodFill(imageData, sx, sy, fillRGB) {
         const y   = (idx / w) | 0;
         const x   = idx % w;
         const pi  = idx * 4;
-        data[pi] = fR; data[pi + 1] = fG; data[pi + 2] = fB; data[pi + 3] = 255;
-
-        const neighbors = [
-            x > 0     ? idx - 1 : -1,
-            x < w - 1 ? idx + 1 : -1,
-            y > 0     ? idx - w : -1,
-            y < h - 1 ? idx + w : -1
+        data[pi] = fR; data[pi+1] = fG; data[pi+2] = fB; data[pi+3] = 255;
+        const nb = [
+            x > 0     ? idx-1 : -1,
+            x < w-1   ? idx+1 : -1,
+            y > 0     ? idx-w : -1,
+            y < h-1   ? idx+w : -1
         ];
-        for (const n of neighbors) {
-            if (n >= 0 && !visited[n] && match(n * 4)) {
-                visited[n] = 1;
-                stack.push(n);
-            }
+        for (const n of nb) {
+            if (n >= 0 && !visited[n] && match(n*4)) { visited[n] = 1; stack.push(n); }
         }
     }
 }
@@ -517,12 +778,16 @@ function wpClear() {
     strokes = [];
     curStroke = null;
     lastGifUrl = null;
-    setStatus('');
-    redraw();
+    redraw(showB); // keep current boil frame
+    showToast('Canvas cleared ✦');
 }
 
 function wpUndo() {
-    if (strokes.length > 0) { strokes.pop(); lastGifUrl = null; setStatus(''); redraw(showB); }
+    if (!strokes.length) return;
+    strokes.pop();
+    lastGifUrl = null;
+    redraw(showB);
+    showToast('Undone');
 }
 
 // ---- Render ----
@@ -534,7 +799,7 @@ function drawStroke(pts, color, size) {
     ctx.lineCap     = 'round';
     ctx.lineJoin    = 'round';
     if (pts.length === 1) {
-        ctx.arc(pts[0].x, pts[0].y, size / 2, 0, Math.PI * 2);
+        ctx.arc(pts[0].x, pts[0].y, size/2, 0, Math.PI*2);
         ctx.fillStyle = color;
         ctx.fill();
         return;
@@ -550,25 +815,22 @@ function redraw(useB) {
 
     for (const s of strokes) {
         if (s.type === 'fill') {
-            // Run flood fill on current pixel state so pre-fill strokes wiggle
             const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
             floodFill(id, s.x, s.y, s.rgb);
             ctx.putImageData(id, 0, 0);
         } else {
-            // Eraser strokes: resolve bg color at render time so bg changes apply retroactively
-            const renderColor = s.eraser ? getBg() : s.color;
-            drawStroke(useB ? s.pointsB : s.pointsA, renderColor, s.size);
+            const col = s.eraser ? getBg() : s.color;
+            drawStroke(useB ? s.pointsB : s.pointsA, col, s.size);
         }
     }
 
-    // Live stroke — always draw clean while user is drawing
     if (curStroke && curStroke.points.length > 0) {
-        const liveColor = curStroke.eraser ? getBg() : curStroke.color;
-        drawStroke(curStroke.points, liveColor, curStroke.size);
+        const col = curStroke.eraser ? getBg() : curStroke.color;
+        drawStroke(curStroke.points, col, curStroke.size);
     }
 }
 
-// ---- Line boil timer: 110ms alternates A/B ----
+// ---- Boil timer ----
 function startBoilTimer() {
     boilTimer = setInterval(() => {
         if (isRecording) return;
@@ -577,7 +839,16 @@ function startBoilTimer() {
     }, 110);
 }
 
-// ---- GIF worker URL (blob trick — avoids CORS on file://) ----
+// ---- Status toast ----
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ---- GIF worker ----
 let _gifWorkerUrl = null;
 async function getWorkerUrl() {
     if (_gifWorkerUrl) return _gifWorkerUrl;
@@ -590,7 +861,7 @@ async function getWorkerUrl() {
     return _gifWorkerUrl;
 }
 
-// ---- GIF encoding ----
+// ---- GIF encode ----
 async function encodeGif(onDone) {
     if (isRecording) return;
     isRecording = true;
@@ -599,15 +870,13 @@ async function encodeGif(onDone) {
 
     const btn = document.getElementById('btn-gif');
     btn.disabled = true;
-    setStatus('Encoding animation...');
+    showToast('Encoding animation…');
 
     const workerUrl = await getWorkerUrl();
     const DELAY = 110;
     const gif = new GIF({
-        workers: 2,
-        quality: 6,
-        width:   canvas.width,
-        height:  canvas.height,
+        workers: 2, quality: 6,
+        width: canvas.width, height: canvas.height,
         workerScript: workerUrl
     });
 
@@ -629,10 +898,9 @@ async function encodeGif(onDone) {
     gif.on('finished', blob => {
         pb.style.width = '100%';
         setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 500);
-
         const reader = new FileReader();
         reader.onload = ev => {
-            lastGifUrl = ev.target.result;
+            lastGifUrl   = ev.target.result;
             btn.disabled = false;
             isRecording  = false;
             startBoilTimer();
@@ -642,7 +910,7 @@ async function encodeGif(onDone) {
     });
 
     gif.on('error', () => {
-        setStatus('Encoding failed, try again.');
+        showToast('Encoding failed, try again 😿');
         pw.style.display = 'none';
         btn.disabled = false;
         isRecording  = false;
@@ -652,35 +920,28 @@ async function encodeGif(onDone) {
     gif.render();
 }
 
-// ---- Preview button ----
 function previewGif() {
-    if (strokes.length === 0) { setStatus('Draw something first!'); return; }
-    encodeGif(() => setStatus('Ready! Hit Submit to send ✨'));
+    if (!strokes.length) { showToast('Draw something first!'); return; }
+    encodeGif(() => showToast('Ready! Hit Submit to send ✨'));
 }
 
-// ---- Submit ----
 function submitToGallery() {
-    if (strokes.length === 0) { setStatus('Draw something first!'); return; }
-    if (lastGifUrl) {
-        doSubmit();
-    } else {
-        setStatus('Encoding animation for submission...');
-        encodeGif(() => doSubmit());
-    }
+    if (!strokes.length) { showToast('Draw something first!'); return; }
+    if (lastGifUrl) { doSubmit(); return; }
+    showToast('Encoding…');
+    encodeGif(() => doSubmit());
 }
 
 function doSubmit() {
     redraw(false);
     window.parent.postMessage({ type: 'wiggly-submit', dataUrl: lastGifUrl }, window.location.origin);
-    setStatus('Submitted! ✨');
+    showToast('Submitted! ✨');
 }
 
-function setStatus(msg) { document.getElementById('status').textContent = msg; }
-
-// ---- Listen for parent trigger ----
+// ---- Message from parent ----
 window.addEventListener('message', e => {
     if (e.origin !== window.location.origin) return;
-    if (e.data && e.data.type === 'trigger-submit') submitToGallery();
+    if (e.data?.type === 'trigger-submit') submitToGallery();
 });
 
 // ---- Fullscreen ----
@@ -688,18 +949,15 @@ function toggleFullscreen() {
     const btn = document.getElementById('fs-btn');
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
-        btn.textContent = '✕';
-        btn.title = 'Exit fullscreen';
+        btn.textContent = '✕'; btn.title = 'Exit fullscreen';
     } else {
         document.exitFullscreen();
-        btn.textContent = '⛶';
-        btn.title = 'Fullscreen';
+        btn.textContent = '⛶'; btn.title = 'Fullscreen';
     }
 }
 document.addEventListener('fullscreenchange', () => {
     const btn = document.getElementById('fs-btn');
-    if (!btn) return;
-    btn.textContent = document.fullscreenElement ? '✕' : '⛶';
+    if (btn) btn.textContent = document.fullscreenElement ? '✕' : '⛶';
     resizeCanvas();
 });
 
@@ -707,7 +965,15 @@ document.addEventListener('fullscreenchange', () => {
 resizeCanvas();
 startBoilTimer();
 window.addEventListener('resize', resizeCanvas);
-bgEl.addEventListener('input', () => redraw(showB));
+// Init swatch + dot state
+document.getElementById('color-swatch').style.background = colorEl.value;
+document.getElementById('bg-swatch').style.background    = bgEl.value;
+(function initSizeDot() {
+    const px = Math.round(5 + (sizeEl.value - 1) / 39 * 17);
+    const dot = document.getElementById('size-dot');
+    dot.style.width = px + 'px'; dot.style.height = px + 'px';
+    document.getElementById('size-val').textContent = sizeEl.value;
+})();
 </script>
 </body>
 </html>
