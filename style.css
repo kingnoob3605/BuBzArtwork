@@ -391,7 +391,7 @@ nav {
 }
 
 .page { display: none; }
-.page.active { display: block; animation: pageIn 0.4s ease; overflow-x: hidden; }
+.page.active { display: block; animation: pageIn 0.4s ease; overflow-x: clip; }
 
 @keyframes pageIn {
     from { opacity: 0; transform: translateY(6px); }
@@ -494,8 +494,9 @@ nav {
 #gallery-grid {
     column-count: 3;
     column-gap: 1.25rem;
-    padding-top: 16px; /* room for tape strips above first-row cards */
-    overflow: hidden;
+    padding-top: 16px;    /* room for tape strips above first-row cards */
+    padding-bottom: 16px; /* mirror: clips tape bleed on last-row cards */
+    contain: paint;       /* reliable paint-clip for ::before tape strips */
 }
 @media (max-width: 900px) { #gallery-grid { column-count: 2; } }
 
