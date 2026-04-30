@@ -276,7 +276,7 @@ sizeEl.addEventListener('input', () => {
 boilEl.addEventListener('input', () => document.getElementById('boil-label').textContent = boilEl.value);
 colorEl.addEventListener('input', () => { if (lastCursorE) updateBrushCursor(lastCursorE); });
 
-function getColor() { return eraserOn ? getBg() : colorEl.value; }
+function getColor() { return colorEl.value; } // eraser color resolved at render time, not baked
 function getSize()  { return parseInt(sizeEl.value, 10) || 4; }
 function getBoil()  { return parseFloat(boilEl.value) || 1.6; }
 function getBg()    { return bgEl.value; }
@@ -399,7 +399,7 @@ function startDraw(e) {
     isDrawing = true;
     curStroke = {
         points: [pos],
-        color:  getColor(),
+        color:  eraserOn ? null : getColor(), // null = resolve bg at render time
         size:   getSize(),
         eraser: eraserOn
     };
@@ -431,8 +431,9 @@ function stopDraw() {
         type:    'stroke',
         pointsA: curStroke.points,
         pointsB,
-        color:   curStroke.color,
-        size:    curStroke.size
+        color:   curStroke.color,  // null if eraser
+        size:    curStroke.size,
+        eraser:  curStroke.eraser  // preserved so redraw() resolves color correctly
     });
     curStroke  = null;
     lastGifUrl = null;
@@ -554,13 +555,16 @@ function redraw(useB) {
             floodFill(id, s.x, s.y, s.rgb);
             ctx.putImageData(id, 0, 0);
         } else {
-            drawStroke(useB ? s.pointsB : s.pointsA, s.color, s.size);
+            // Eraser strokes: resolve bg color at render time so bg changes apply retroactively
+            const renderColor = s.eraser ? getBg() : s.color;
+            drawStroke(useB ? s.pointsB : s.pointsA, renderColor, s.size);
         }
     }
 
     // Live stroke — always draw clean while user is drawing
     if (curStroke && curStroke.points.length > 0) {
-        drawStroke(curStroke.points, curStroke.color, curStroke.size);
+        const liveColor = curStroke.eraser ? getBg() : curStroke.color;
+        drawStroke(curStroke.points, liveColor, curStroke.size);
     }
 }
 
