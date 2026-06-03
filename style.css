@@ -1250,15 +1250,20 @@ nav {
     border: none;
     font-size: 0.7rem;
     cursor: pointer;
-    color: rgba(220,80,80,0.55);
-    opacity: 0;
+    color: rgba(220,80,80,0.35);
+    opacity: 1;
     transition: opacity 0.15s ease, color 0.15s, background 0.15s;
-    padding: 0.1rem 0.3rem;
+    padding: 0.4rem 0.5rem;
+    min-width: 32px;
+    min-height: 32px;
     line-height: 1;
     flex-shrink: 0;
     border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.comment-item:hover .comment-delete { opacity: 1; }
+.comment-item:hover .comment-delete { color: rgba(220,80,80,0.7); }
 .comment-delete:hover { color: #e04040; background: rgba(220,80,80,0.1); }
 
 /* ── Owner comment ────────────────────────────────────── */
@@ -3182,8 +3187,8 @@ input[type="range"] {
     border: 1px solid var(--card-border);
     color: var(--text-dim);
     border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
+    width: 2.75rem;
+    height: 2.75rem;
     cursor: pointer;
     font-size: 1rem;
     transition: var(--transition);
@@ -3214,6 +3219,7 @@ input[type="range"] {
     border-bottom: none;
     color: var(--text-dim);
     padding: 0.55rem 1.25rem;
+    min-height: 44px;
     border-radius: 8px 8px 0 0;
     font-family: var(--font-body);
     font-size: 0.88rem;
