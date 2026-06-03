@@ -2183,8 +2183,9 @@ async function handleArtFiles(files) {
         const card = document.createElement('div');
         card.className = 'preview-card';
         const thumb = document.createElement('img');
-        thumb.src = URL.createObjectURL(file);
-        thumb.onload = () => URL.revokeObjectURL(thumb.src);
+        const objectUrl = URL.createObjectURL(file);
+        thumb.src = objectUrl;
+        thumb.onload = () => URL.revokeObjectURL(objectUrl);
         const badge = document.createElement('span');
         badge.className = 'preview-badge';
         badge.textContent = '⏳';
@@ -2226,10 +2227,11 @@ function addUrlField() {
 
 // ── Add Art (supports batch / multiple URLs) ───
 async function submitNewArt() {
-    const title   = document.getElementById('new-title').value.trim();
-    const desc    = document.getElementById('new-desc').value.trim();
-    const tagsRaw = document.getElementById('new-tags').value.trim();
-    const nsfw    = document.getElementById('new-nsfw').checked;
+    const title    = document.getElementById('new-title').value.trim();
+    const desc     = document.getElementById('new-desc').value.trim();
+    const tagsRaw  = document.getElementById('new-tags').value.trim();
+    const nsfw     = document.getElementById('new-nsfw').checked;
+    const separate = document.getElementById('new-separate')?.checked ?? false;
 
     const images = Array.from(document.querySelectorAll('.batch-url'))
         .map(i => i.value.trim()).filter(Boolean);
@@ -2240,14 +2242,29 @@ async function submitNewArt() {
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
     const date = new Date().toISOString().split('T')[0];
 
-    for (let i = 0; i < images.length; i++) {
+    if (!separate && images.length > 1) {
+        // Combine all images into one artwork with images[] array
         const newArt = {
-            id: String(Date.now() + i),
-            title: images.length > 1 ? `${title} (${i + 1}/${images.length})` : title,
-            description: desc, image: images[i], tags, nsfw, date,
+            id: String(Date.now()),
+            title, description: desc,
+            image: images[0], images,
+            tags, nsfw, date,
         };
         await dbAddExtraArtwork(newArt);
         allArtworks.unshift(newArt);
+        showToast(`Artwork added with ${images.length} images! 🎨`);
+    } else {
+        // Add each image as its own artwork
+        for (let i = 0; i < images.length; i++) {
+            const newArt = {
+                id: String(Date.now() + i),
+                title: images.length > 1 ? `${title} (${i + 1}/${images.length})` : title,
+                description: desc, image: images[i], tags, nsfw, date,
+            };
+            await dbAddExtraArtwork(newArt);
+            allArtworks.unshift(newArt);
+        }
+        showToast(images.length > 1 ? `${images.length} artworks added! 🎨` : 'Artwork added! 🎨');
     }
 
     renderTagChips();
@@ -2257,12 +2274,11 @@ async function submitNewArt() {
     document.getElementById('new-desc').value  = '';
     document.getElementById('new-tags').value  = '';
     document.getElementById('new-nsfw').checked = false;
+    if (document.getElementById('new-separate')) document.getElementById('new-separate').checked = false;
     document.getElementById('batch-url-list').innerHTML = '';
     document.getElementById('paste-url-input').value = '';
     document.getElementById('art-preview-grid').innerHTML = '';
     document.getElementById('art-upload-status').textContent = '';
-
-    showToast(images.length > 1 ? `${images.length} artworks added! 🎨` : 'Artwork added! 🎨');
 }
 
 // ── Submissions view ───────────────────────────
