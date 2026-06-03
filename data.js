@@ -68,33 +68,4 @@ const BANNED_REACTION_EMOJIS = [
 // ARTWORKS — add your art here!
 // Format: { id, title, description, date (YYYY-MM-DD), tags: [], nsfw: bool, image: "url" }
 // =============================================
-const artworks = [
-  {
-    id: 1,
-    title: "Placeholder Art 1",
-    description:
-      "Replace this with your own artwork! Edit data.js to add pieces.",
-    date: "2025-01-15",
-    tags: ["digital", "character"],
-    nsfw: false,
-    image: "https://picsum.photos/seed/art1/400/520",
-  },
-  {
-    id: 2,
-    title: "Placeholder Art 2",
-    description: "Another example. You can have as many pieces as you want!",
-    date: "2025-02-20",
-    tags: ["traditional", "sketch"],
-    nsfw: false,
-    image: "https://picsum.photos/seed/art2/400/600",
-  },
-  {
-    id: 3,
-    title: "NSFW Example",
-    description: "This is an NSFW-tagged piece — hidden when SFW filter is on.",
-    date: "2025-03-10",
-    tags: ["digital", "mature"],
-    nsfw: true,
-    image: "https://picsum.photos/seed/art3/400/480",
-  },
-];
+const artworks = [];
