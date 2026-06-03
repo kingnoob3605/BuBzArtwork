@@ -373,6 +373,7 @@ nav {
     font-size: 0.88rem;
     font-weight: 600;
     padding: 0.5rem 1.1rem;
+    min-height: 44px;
     border-radius: 50px;
     cursor: pointer;
     transition: var(--transition);
@@ -1409,8 +1410,8 @@ nav {
     border: 1px solid var(--card-border);
     color: var(--text);
     border-radius: 50%;
-    width: 2.2rem;
-    height: 2.2rem;
+    width: 2.75rem;
+    height: 2.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3306,6 +3307,7 @@ input[type="range"] {
     color: var(--text-dim);
     font-size: 0.75rem;
     padding: 0.3rem 0.8rem;
+    min-height: 44px;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;
 }
@@ -3378,7 +3380,8 @@ input[type="range"] {
     font-size: 0.88rem;
     color: var(--text-dim);
     cursor: pointer;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem;
+    min-height: 44px;
     background: var(--bg2);
     border: 1px solid var(--card-border);
     border-radius: var(--radius-sm);
@@ -4057,6 +4060,8 @@ body.admin-logged .comment-delete:hover {
     font-size: 1.15rem;
     cursor: pointer;
     padding: 0.4rem 0.6rem;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: var(--radius-sm);
     line-height: 1;
     transition: var(--transition);
