@@ -3132,7 +3132,7 @@ input[type="range"] {
 }
 
 /* =============================================
-   ADMIN PANEL
+   ADMIN PANEL — redesigned sidebar layout
    ============================================= */
 #admin-panel {
     position: fixed;
@@ -3142,12 +3142,12 @@ input[type="range"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
+    padding: 1.25rem;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    transition: opacity 0.25s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 #admin-panel.open {
     opacity: 1;
@@ -3155,31 +3155,63 @@ input[type="range"] {
 }
 
 .admin-inner {
-    background: var(--card);
+    background: var(--bg2);
     border: 1px solid var(--card-border);
     border-radius: var(--radius);
-    max-width: 720px;
+    max-width: 860px;
     width: 100%;
-    max-height: 88vh;
+    max-height: 92vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(239,116,92,0.12);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(239,116,92,0.15);
 }
 
+/* ── Header ─────────────────────────────── */
 .admin-header {
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--card-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: var(--bg2);
+    flex-shrink: 0;
+    gap: 0.75rem;
 }
 .admin-header h2 {
     font-family: var(--font-display);
     color: var(--accent);
-    font-size: 1.35rem;
+    font-size: 1.25rem;
+    white-space: nowrap;
+}
+.admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.admin-export-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.4rem 0.85rem;
+    min-height: 36px;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+.admin-export-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(239,116,92,0.08);
 }
 
 .admin-close {
@@ -3196,6 +3228,7 @@ input[type="range"] {
     align-items: center;
     justify-content: center;
     line-height: 1;
+    flex-shrink: 0;
 }
 .admin-close:hover {
     background: var(--accent);
@@ -3204,37 +3237,60 @@ input[type="range"] {
     transform: rotate(90deg);
 }
 
+/* ── Sidebar layout ─────────────────────── */
+.admin-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Desktop: vertical sidebar */
 .admin-tabs {
     display: flex;
-    padding: 1rem 1.5rem 0;
-    gap: 0.5rem;
-    border-bottom: 1px solid var(--card-border);
-    background: var(--bg2);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0.75rem 0.5rem;
+    background: rgba(0,0,0,0.2);
+    border-right: 1px solid var(--card-border);
+    width: 150px;
+    flex-shrink: 0;
+    overflow-y: auto;
 }
 
 .admin-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     background: transparent;
     border: 1px solid transparent;
-    border-bottom: none;
     color: var(--text-dim);
-    padding: 0.55rem 1.25rem;
+    padding: 0.6rem 0.75rem;
     min-height: 44px;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-sm);
     font-family: var(--font-body);
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
+    text-align: left;
+    width: 100%;
+    position: relative;
 }
-.admin-tab-btn:hover { color: var(--text); }
-.admin-tab-btn.active {
-    background: var(--card);
-    color: var(--accent);
+.admin-tab-btn .tab-icon { font-size: 1rem; flex-shrink: 0; }
+.admin-tab-btn .tab-label { flex: 1; }
+.admin-tab-btn:hover {
+    background: rgba(239,116,92,0.08);
+    color: var(--text);
     border-color: var(--card-border);
 }
+.admin-tab-btn.active {
+    background: rgba(239,116,92,0.15);
+    color: var(--accent);
+    border-color: rgba(239,116,92,0.35);
+}
+.admin-tab-btn.active .tab-icon { filter: none; }
 
-/* Pending count badge on tab */
+/* Pending count badge */
 .admin-tab-badge {
     display: inline-flex;
     align-items: center;
@@ -3244,22 +3300,85 @@ input[type="range"] {
     border-radius: 50px;
     background: var(--accent);
     color: #fff;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 700;
-    padding: 0 5px;
-    margin-left: 5px;
-    vertical-align: middle;
+    padding: 0 4px;
     line-height: 1;
+    flex-shrink: 0;
 }
+.admin-tab-badge:empty { display: none; }
 
+/* ── Body ───────────────────────────────── */
 .admin-body {
     flex: 1;
     overflow-y: auto;
-    padding: 1.75rem;
+    min-width: 0;
+    background: var(--card);
 }
 
-.admin-tab-content { display: none; }
+.admin-tab-content { display: none; padding: 1.5rem; }
 .admin-tab-content.active { display: block; }
+
+/* ── Mobile: full-screen, top strip ─────── */
+@media (max-width: 700px) {
+    #admin-panel {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .admin-inner {
+        max-width: 100%;
+        width: 100%;
+        max-height: 96vh;
+        border-radius: var(--radius) var(--radius) 0 0;
+        border-bottom: none;
+    }
+    .admin-layout {
+        flex-direction: column;
+    }
+    .admin-tabs {
+        flex-direction: row;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+        padding: 0.5rem 0.5rem 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 2px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .admin-tabs::-webkit-scrollbar { display: none; }
+    .admin-tab-btn {
+        flex-direction: column;
+        gap: 0.15rem;
+        padding: 0.5rem 0.65rem;
+        min-width: 64px;
+        width: auto;
+        border-radius: 8px 8px 0 0;
+        border-bottom: none;
+        font-size: 0.72rem;
+        min-height: 56px;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .admin-tab-btn .tab-icon { font-size: 1.1rem; }
+    .admin-tab-btn.active {
+        border-bottom: 2px solid var(--accent);
+    }
+    .admin-tab-badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        min-width: 16px;
+        height: 16px;
+        font-size: 0.58rem;
+    }
+    .admin-tab-content { padding: 1rem; }
+    .admin-header { padding: 0.75rem 1rem; }
+    .admin-header h2 { font-size: 1.1rem; }
+}
 
 /* Imgur upload UI */
 .imgur-upload-wrap {

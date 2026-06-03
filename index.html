@@ -749,66 +749,42 @@
         <!-- Header -->
         <div class="admin-header">
           <h2>✦ Admin Panel</h2>
-          <button class="admin-close" onclick="closeAdmin()" aria-label="Close">
-            ✕
-          </button>
+          <div class="admin-header-actions">
+            <button class="admin-export-btn" onclick="exportData()" title="Download all data as JSON backup">
+              💾 Export
+            </button>
+            <button class="admin-close" onclick="closeAdmin()" aria-label="Close">✕</button>
+          </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="admin-tabs">
-          <button
-            class="admin-tab-btn"
-            data-tab="add-art"
-            onclick="showAdminTab('add-art')"
-          >
-            ➕ Add Art
-          </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="my-art"
-            onclick="showAdminTab('my-art')"
-          >
-            🖼️ My Art
-          </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="pending"
-            onclick="showAdminTab('pending')"
-          >
-            ⏳ Pending<span class="admin-tab-badge" id="pending-badge"></span>
-          </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="submissions"
-            onclick="showAdminTab('submissions')"
-          >
-            📬 Inbox
-          </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="create-poll"
-            onclick="showAdminTab('create-poll')"
-          >
-            📊 Poll
-          </button>
-          <button
-            class="admin-tab-btn"
-            data-tab="wall"
-            onclick="showAdminTab('wall')"
-          >
-            🗨️ Wall
-          </button>
-          <button
-            class="admin-export-btn"
-            onclick="exportData()"
-            title="Download all data as JSON backup"
-          >
-            💾 Export
-          </button>
-        </div>
+        <!-- Layout: sidebar + body -->
+        <div class="admin-layout">
+          <!-- Tabs (sidebar on desktop, scrollable strip on mobile) -->
+          <nav class="admin-tabs" role="tablist">
+            <button class="admin-tab-btn active" data-tab="add-art" onclick="showAdminTab('add-art')" role="tab">
+              <span class="tab-icon">➕</span><span class="tab-label">Add Art</span>
+            </button>
+            <button class="admin-tab-btn" data-tab="my-art" onclick="showAdminTab('my-art')" role="tab">
+              <span class="tab-icon">🖼️</span><span class="tab-label">My Art</span>
+            </button>
+            <button class="admin-tab-btn" data-tab="pending" onclick="showAdminTab('pending')" role="tab">
+              <span class="tab-icon">⏳</span><span class="tab-label">Pending</span><span class="admin-tab-badge" id="pending-badge"></span>
+            </button>
+            <button class="admin-tab-btn" data-tab="submissions" onclick="showAdminTab('submissions')" role="tab">
+              <span class="tab-icon">📬</span><span class="tab-label">Inbox</span>
+            </button>
+            <button class="admin-tab-btn" data-tab="create-poll" onclick="showAdminTab('create-poll')" role="tab">
+              <span class="tab-icon">📊</span><span class="tab-label">Poll</span>
+            </button>
+            <button class="admin-tab-btn" data-tab="wall" onclick="showAdminTab('wall')" role="tab">
+              <span class="tab-icon">🗨️</span><span class="tab-label">Wall</span>
+            </button>
+          </nav>
 
-        <!-- Body -->
-        <div class="admin-body">
+          </nav>
+
+          <!-- Body -->
+          <div class="admin-body">
           <!-- Add Art tab -->
           <div class="admin-tab-content active" id="admin-tab-add-art">
             <div class="admin-form">
@@ -978,9 +954,10 @@
               ></div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+          </div><!-- /admin-body -->
+        </div><!-- /admin-layout -->
+      </div><!-- /admin-inner -->
+    </div><!-- /admin-panel -->
 
     <!-- Back to top -->
     <button
