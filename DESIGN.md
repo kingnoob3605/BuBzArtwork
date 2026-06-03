@@ -164,9 +164,11 @@
 - Font: Comfortaa, `--text`
 
 ### Toasts
-- Background: `--card`, border `--border`, border-radius 22px
-- Font: Comfortaa, `--text`
-- Position: fixed bottom-center
+- Background: `--accent` (coral), white text, border-radius 50px
+- Font: Comfortaa 700, 0.9rem
+- Shadow: `--accent-glow`
+- Position: fixed bottom-center, slide-up animation
+- Note: coral bg chosen over card bg for maximum visibility
 
 ## Risks (deliberate departures — preserve these)
 

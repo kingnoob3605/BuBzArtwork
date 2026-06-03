@@ -36,6 +36,15 @@
     --font-stamp: 'Special Elite', 'Courier New', monospace;
     --font-display: 'Pacifico', cursive;
     --font-body: 'Comfortaa', 'Segoe UI', sans-serif;
+
+    /* Spacing scale — 8px base unit (DESIGN.md) */
+    --space-xs:  4px;
+    --space-sm:  8px;
+    --space-md:  16px;
+    --space-lg:  24px;
+    --space-xl:  32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
 }
 
 *, *::before, *::after {
