@@ -146,11 +146,13 @@ async function init() {
   });
 
   // Age gate — check expiry (30 days) and session flag (stays in localStorage — per-user)
+  // Skip gate on localhost (dev/preview only)
+  const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
   const ageTs = localStorage.getItem("age-confirmed-ts");
   const sessionOk = sessionStorage.getItem("age-session");
   const expired =
     !ageTs || Date.now() - parseInt(ageTs, 10) > 30 * 24 * 60 * 60 * 1000;
-  if (!sessionOk && expired) {
+  if (!isLocalhost && !sessionOk && expired) {
     showAgeGate();
   } else {
     document.getElementById("age-gate").classList.add("hidden");
