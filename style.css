@@ -2117,24 +2117,51 @@ nav {
 .wall-lb-right .reaction-quick-btn { display: inline-flex !important; }
 
 @media (max-width: 620px) {
+    /* ── Base: bottom sheet ── */
+    #wall-lightbox {
+        padding: 0;
+        align-items: flex-end;
+    }
     .wall-lb-inner {
         flex-direction: column;
-        max-height: 95vh;
-        border-radius: 14px;
+        max-height: 92vh;
+        border-radius: 18px 18px 0 0;
+        animation: sheetUp 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        /* Drag handle */
+        position: relative;
     }
-    .wall-lb-left {
+    .wall-lb-inner::before {
+        content: "";
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 4px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.22);
+        z-index: 20;
+        pointer-events: none;
+    }
+
+    /* ── Close button ── */
+    .wall-lb-close {
+        top: 10px;
+        right: 10px;
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+        z-index: 25;
+    }
+
+    /* ── DRAWING: split layout (image top, replies bottom) ── */
+    .wall-lb-left.wall-lb-drawing {
         flex: 0 0 auto;
         min-height: 180px;
         max-height: 45vh;
+        overflow: hidden;
     }
-    .wall-lb-left.wall-lb-message,
-    .wall-lb-left.wall-lb-poll {
-        max-height: 45vh;
-        scrollbar-width: none;
-    }
-    .wall-lb-left.wall-lb-message::-webkit-scrollbar,
-    .wall-lb-left.wall-lb-poll::-webkit-scrollbar { display: none; }
-    .wall-lb-right {
+    .wall-lb-inner:has(.wall-lb-drawing) .wall-lb-right {
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -2142,23 +2169,65 @@ nav {
         border-top: 1px solid var(--card-border);
         padding: 0.85rem 0.85rem 1.25rem;
     }
-    .wall-lb-close {
-        top: 8px;
-        right: 8px;
-        width: 44px;
-        height: 44px;
-        font-size: 1rem;
-    }
-    .wall-replies-wrap {
+    .wall-lb-inner:has(.wall-lb-drawing) .wall-replies-wrap {
         overflow: visible;
     }
-    .wall-replies-wrap .wall-replies {
+    .wall-lb-inner:has(.wall-lb-drawing) .wall-replies-wrap .wall-replies {
         overflow-y: visible;
         max-height: none;
     }
-    .reply-input-bottom {
-        flex-wrap: nowrap;
+
+    /* ── POLL / MESSAGE: unified single scroll ── */
+    .wall-lb-inner:has(.wall-lb-poll),
+    .wall-lb-inner:has(.wall-lb-message) {
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: none;
     }
+    .wall-lb-inner:has(.wall-lb-poll)::-webkit-scrollbar,
+    .wall-lb-inner:has(.wall-lb-message)::-webkit-scrollbar { display: none; }
+
+    .wall-lb-left.wall-lb-poll,
+    .wall-lb-left.wall-lb-message {
+        flex: 0 0 auto;
+        max-height: none;
+        overflow-y: visible;
+        border-bottom: 1px solid var(--card-border);
+        /* Extra top padding so content clears the close button */
+        padding-top: 1.5rem;
+    }
+
+    .wall-lb-inner:has(.wall-lb-poll) .wall-lb-right,
+    .wall-lb-inner:has(.wall-lb-message) .wall-lb-right {
+        flex: 0 0 auto;
+        overflow-y: visible;
+        border-left: none;
+        border-top: none;
+        padding: 0.85rem 0.85rem 0;
+    }
+    .wall-lb-inner:has(.wall-lb-poll) .wall-replies-wrap,
+    .wall-lb-inner:has(.wall-lb-message) .wall-replies-wrap {
+        overflow: visible;
+    }
+    .wall-lb-inner:has(.wall-lb-poll) .wall-replies-wrap .wall-replies,
+    .wall-lb-inner:has(.wall-lb-message) .wall-replies-wrap .wall-replies {
+        overflow-y: visible;
+        max-height: none;
+    }
+
+    /* Sticky reply input at bottom of scrollable sheet */
+    .wall-lb-inner:has(.wall-lb-poll) #wlb-reply-input,
+    .wall-lb-inner:has(.wall-lb-message) #wlb-reply-input {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        background: linear-gradient(180deg, transparent, var(--bg2) 28%);
+        padding: 0.5rem 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        margin-top: 0.5rem;
+    }
+
+    /* ── Shared reply input ── */
+    .reply-input-bottom { flex-wrap: nowrap; }
     .reply-anon-sel { flex: 1; min-width: 80px; }
     .reply-name-input { flex: 1; min-width: 80px; width: auto; flex-basis: auto; }
 }
