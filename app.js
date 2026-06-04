@@ -1513,6 +1513,7 @@ function openWallPost(id) {
             <div class="reply-input-top">
                 <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
                     onkeydown="if(event.key==='Enter')postReply('${post.id}')">
+                <button class="reply-send-btn" onclick="postReply('${post.id}')">Send ✨</button>
             </div>
             <div class="reply-input-bottom">
                 <select class="reply-anon-sel" id="reply-anon-${post.id}">
@@ -1520,8 +1521,7 @@ function openWallPost(id) {
                     <option value="__named__">✏️ Named…</option>
                 </select>
                 <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name…" style="display:none" maxlength="40">
-                <button class="reply-send-btn" onclick="postReply('${post.id}')">Send ✨</button>
-                <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕</button>
+                <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕ Cancel</button>
             </div>
         </div>
         <button class="reply-toggle-btn" onclick="toggleReplyInput('${post.id}')">
