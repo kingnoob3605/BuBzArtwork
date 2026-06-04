@@ -2130,7 +2130,10 @@ nav {
     .wall-lb-left.wall-lb-message,
     .wall-lb-left.wall-lb-poll {
         max-height: 45vh;
+        scrollbar-width: none;
     }
+    .wall-lb-left.wall-lb-message::-webkit-scrollbar,
+    .wall-lb-left.wall-lb-poll::-webkit-scrollbar { display: none; }
     .wall-lb-right {
         flex: 1;
         min-height: 0;
