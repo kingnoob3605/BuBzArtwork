@@ -4,3 +4,5 @@ PUSH_TO_GIT.txt
 keys.js
 .gstack/
 .gstack-audit/
+.claude/
+design-preview.html
