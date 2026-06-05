@@ -146,19 +146,24 @@
 
         <!-- Tag chips + Sort -->
         <div class="tag-filter-section">
-          <div class="tag-filter-label">Filter by tag</div>
-          <div class="tag-chips" id="tag-chips"></div>
-          <div class="gallery-sort-wrap">
-            <select
-              class="gallery-sort-select"
-              id="gallery-sort"
-              onchange="setSortOrder(this.value)"
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="az">A–Z</option>
-            </select>
+          <div class="tag-filter-row">
+            <button class="tag-filter-toggle" id="tag-filter-toggle" onclick="toggleTagFilter()">
+              🏷️ Filter by tag <span class="tag-filter-arrow">▾</span>
+              <span class="tag-active-badge" id="tag-active-badge"></span>
+            </button>
+            <div class="gallery-sort-wrap">
+              <select
+                class="gallery-sort-select"
+                id="gallery-sort"
+                onchange="setSortOrder(this.value)"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="az">A–Z</option>
+              </select>
+            </div>
           </div>
+          <div class="tag-chips" id="tag-chips"></div>
         </div>
 
         <!-- Masonry grid -->
@@ -606,7 +611,7 @@
     <!-- =============================================
      LIGHTBOX MODAL
      ============================================= -->
-    <div id="lightbox">
+    <div id="lightbox" aria-hidden="true" aria-modal="true" role="dialog">
       <div class="lightbox-inner">
         <!-- Close button -->
         <button
@@ -694,7 +699,7 @@
     <!-- =============================================
      WALL POST LIGHTBOX
      ============================================= -->
-    <div id="wall-lightbox">
+    <div id="wall-lightbox" aria-hidden="true" aria-modal="true" role="dialog">
       <div class="wall-lb-inner">
         <button
           class="wall-lb-close"
@@ -790,13 +795,14 @@
             <div class="admin-form">
               <div class="form-group">
                 <label for="new-title">Title *</label>
-                <input type="text" id="new-title" placeholder="My Artwork" />
+                <input type="text" id="new-title" placeholder="My Artwork" oninput="renderTagSuggestions()" />
               </div>
               <div class="form-group">
                 <label for="new-desc">Description</label>
                 <textarea
                   id="new-desc"
                   placeholder="Tell us about this piece…"
+                  oninput="renderTagSuggestions()"
                 ></textarea>
               </div>
               <div class="form-group">
@@ -866,7 +872,12 @@
                   type="text"
                   id="new-tags"
                   placeholder="digital, character, fanart"
+                  oninput="renderTagSuggestions()"
                 />
+                <div class="tag-suggest-wrap hidden" id="tag-suggest-wrap">
+                  <div class="tag-suggest-label">✦ Suggested — click to add</div>
+                  <div class="tag-suggest-chips" id="tag-suggest-chips"></div>
+                </div>
               </div>
               <label class="form-checkbox-row">
                 <input type="checkbox" id="new-nsfw" /> Mark as NSFW

@@ -13,6 +13,7 @@ let currentWallPost = null; // open wall lightbox post
 let logoClickCount = 0;
 let logoClickTimer = null;
 let adminLoggedIn = false;
+let tagFilterOpen = false;
 
 // Canvas state
 let isDrawing = false;
@@ -171,6 +172,9 @@ async function init() {
 
   // Logo click counter for admin
   document.getElementById("logo-text").addEventListener("click", onLogoClick);
+
+  // Auto-tag suggestions in admin form
+  initAutoTagSuggest();
 }
 
 // ═══════════════════════════════════════════════
@@ -261,19 +265,45 @@ function setFilter(filter, el) {
 }
 
 function setTagFilter(tag, el) {
-  if (activeTag === tag) {
+  const key = tag.toLowerCase();
+  if (activeTag === key) {
     activeTag = null;
-    document
-      .querySelectorAll(".tag-chip")
-      .forEach((c) => c.classList.remove("active"));
+    document.querySelectorAll(".tag-chip").forEach((c) => c.classList.remove("active"));
   } else {
-    activeTag = tag;
-    document
-      .querySelectorAll(".tag-chip")
-      .forEach((c) => c.classList.remove("active"));
+    activeTag = key;
+    document.querySelectorAll(".tag-chip").forEach((c) => c.classList.remove("active"));
     if (el) el.classList.add("active");
   }
+  _updateTagActiveBadge();
   renderGallery();
+}
+
+function _updateTagActiveBadge() {
+  const badge = document.getElementById("tag-active-badge");
+  const toggle = document.getElementById("tag-filter-toggle");
+  if (!badge) return;
+  if (activeTag) {
+    badge.textContent = "#" + activeTag;
+    badge.classList.add("visible");
+    if (toggle) toggle.classList.add("has-active");
+  } else {
+    badge.classList.remove("visible");
+    if (toggle) toggle.classList.remove("has-active");
+  }
+}
+
+function toggleTagFilter() {
+  tagFilterOpen = !tagFilterOpen;
+  const chips = document.getElementById("tag-chips");
+  const toggle = document.getElementById("tag-filter-toggle");
+  if (!chips || !toggle) return;
+  if (tagFilterOpen) {
+    chips.classList.add("open");
+    toggle.classList.add("open");
+  } else {
+    chips.classList.remove("open");
+    toggle.classList.remove("open");
+  }
 }
 
 function getFilteredArtworks() {
@@ -285,7 +315,7 @@ function getFilteredArtworks() {
         currentFilter === "all" ||
         (currentFilter === "sfw" && !art.nsfw) ||
         (currentFilter === "nsfw" && art.nsfw);
-      const passTag = !activeTag || (art.tags && art.tags.includes(activeTag));
+      const passTag = !activeTag || (art.tags && art.tags.some((t) => t.trim().toLowerCase() === activeTag));
       return passFilter && passTag;
     });
   if (currentSort === "oldest") {
@@ -302,19 +332,25 @@ function getFilteredArtworks() {
 }
 
 function renderTagChips() {
-  const tagSet = new Set();
-  allArtworks.forEach((art) => (art.tags || []).forEach((t) => tagSet.add(t)));
+  // Normalize to lowercase, dedupe, sort alphabetically
+  const tagMap = new Map();
+  allArtworks.forEach((art) =>
+    (art.tags || []).forEach((t) => {
+      const key = t.trim().toLowerCase();
+      if (key && !tagMap.has(key)) tagMap.set(key, key);
+    })
+  );
   const container = document.getElementById("tag-chips");
   container.innerHTML = "";
-  tagSet.forEach((tag) => {
+  [...tagMap.keys()].sort().forEach((key) => {
     const chip = document.createElement("span");
-    chip.className = "tag-chip" + (activeTag === tag ? " active" : "");
-    chip.textContent = "#" + escHtml(tag);
-    chip.onclick = function () {
-      setTagFilter(tag, this);
-    };
+    chip.className = "tag-chip" + (activeTag === key ? " active" : "");
+    chip.textContent = "#" + escHtml(key);
+    chip.dataset.tag = key;
+    chip.onclick = function () { setTagFilter(key, this); };
     container.appendChild(chip);
   });
+  _updateTagActiveBadge();
 }
 
 // ═══════════════════════════════════════════════
@@ -417,6 +453,7 @@ function openLightbox(id) {
 
   const lb = document.getElementById("lightbox");
   lb.classList.add("open");
+  lb.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
 
   gsap.fromTo(
@@ -476,7 +513,9 @@ function closeLightbox() {
     duration: 0.25,
     ease: "power2.in",
     onComplete: () => {
-      document.getElementById("lightbox").classList.remove("open");
+      const lbEl = document.getElementById("lightbox");
+      lbEl.classList.remove("open");
+      lbEl.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";
       currentArtwork = null;
       currentImageIndex = 0;
@@ -2227,6 +2266,98 @@ function addUrlField() {
     inp.focus();
 }
 
+// ── Auto-tag suggestion ────────────────────────
+const _TAG_STOP_WORDS = new Set([
+  'a','an','the','and','or','but','in','on','at','to','for','of','with',
+  'by','from','as','is','are','was','were','be','been','this','that',
+  'these','those','it','its','i','me','my','we','you','your','he','she',
+  'they','his','her','their','our','just','so','do','did','have','has',
+  'had','will','would','can','could','not','no','up','out','about','like',
+  'really','very','also','even','now','then','than','too','its','here',
+  'there','when','who','what','how','why','which','all','some','any',
+  'each','more','most','other','into','over','after','before','still',
+  'already','lol','omg','wow','hey','gawd','nah','bro','yeah','ok',
+]);
+
+function _buildTagSuggestions() {
+  const titleEl = document.getElementById('new-title');
+  const descEl  = document.getElementById('new-desc');
+  const tagsEl  = document.getElementById('new-tags');
+  if (!titleEl) return [];
+
+  const title   = titleEl.value || '';
+  const desc    = descEl?.value  || '';
+  const combined = (title + ' ' + desc).toLowerCase();
+
+  const currentTags = new Set(
+    (tagsEl?.value || '').split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+  );
+
+  // Collect all existing gallery tags (lowercase)
+  const galleryTags = new Set();
+  allArtworks.forEach(art => (art.tags || []).forEach(t => galleryTags.add(t.trim().toLowerCase())));
+
+  // 1. Existing gallery tags whose text appears in title/desc
+  const matched = [...galleryTags].filter(tag => {
+    if (currentTags.has(tag)) return false;
+    if (tag.includes(' ')) return combined.includes(tag);
+    // word-boundary-ish check
+    return combined.split(/[\s,\-\/()\[\]!?.]+/).some(w => w === tag);
+  });
+
+  // 2. New capitalized words from the raw text (likely proper nouns / series names)
+  const rawWords = (title + ' ' + desc).split(/[\s,\-\/()\[\]!?.]+/);
+  const potential = [...new Set(
+    rawWords
+      .filter(w => w.length >= 3 && /^[A-Z]/.test(w))
+      .map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(w => {
+        if (w.length < 3 || _TAG_STOP_WORDS.has(w)) return false;
+        if (currentTags.has(w) || galleryTags.has(w)) return false;
+        // Skip if this word is already part of a matched multi-word tag
+        if (matched.some(tag => tag.split(' ').includes(w))) return false;
+        return true;
+      })
+  )].slice(0, 4);
+
+  return [...matched, ...potential];
+}
+
+function renderTagSuggestions() {
+  const wrap   = document.getElementById('tag-suggest-wrap');
+  const chips  = document.getElementById('tag-suggest-chips');
+  if (!wrap || !chips) return;
+  const suggestions = _buildTagSuggestions();
+  if (!suggestions.length) {
+    wrap.classList.add('hidden');
+    chips.innerHTML = '';
+    return;
+  }
+  wrap.classList.remove('hidden');
+  chips.innerHTML = suggestions.map(tag =>
+    `<span class="tag-suggest-chip" onclick="addSuggestedTag('${escHtml(tag)}')">#${escHtml(tag)} <span class="tag-suggest-plus">+</span></span>`
+  ).join('');
+}
+
+function addSuggestedTag(tag) {
+  const input = document.getElementById('new-tags');
+  if (!input) return;
+  const current = input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  if (current.includes(tag.toLowerCase())) return;
+  current.push(tag.toLowerCase());
+  input.value = current.join(', ');
+  renderTagSuggestions();
+}
+
+function initAutoTagSuggest() {
+  ['new-title', 'new-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', renderTagSuggestions);
+  });
+  const tagsEl = document.getElementById('new-tags');
+  if (tagsEl) tagsEl.addEventListener('input', renderTagSuggestions);
+}
+
 // ── Add Art (supports batch / multiple URLs) ───
 async function submitNewArt() {
     const title    = document.getElementById('new-title').value.trim();
@@ -2241,7 +2372,7 @@ async function submitNewArt() {
     if (!title) { showToast('Title is required!'); return; }
     if (!images.length) { showToast('At least one image is required!'); return; }
 
-    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
     const date = new Date().toISOString().split('T')[0];
 
     if (!separate && images.length > 1) {
