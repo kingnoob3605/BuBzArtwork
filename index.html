@@ -1033,7 +1033,7 @@
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Scripts — data before app -->
+    <!-- Scripts — load order matters: app.js (state) → feature modules → mobile -->
     <script src="data.js?v=7"></script>
     <script>
       const SUPABASE_URL = "https://hfflfrhfqxsjxofqhxev.supabase.co";
@@ -1043,7 +1043,11 @@
       const ADMIN_EMAIL = "kingnoob360pro@gmail.com";
     </script>
     <script src="db.js?v=14"></script>
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=15"></script>
+    <script src="js/gallery.js?v=15"></script>
+    <script src="js/wall.js?v=15"></script>
+    <script src="js/send.js?v=15"></script>
+    <script src="js/admin.js?v=15"></script>
     <script src="mobile-enhance.js?v=14"></script>
 
     <!-- Vercel Analytics (gated to deployed host; avoids 404 in preview) -->
