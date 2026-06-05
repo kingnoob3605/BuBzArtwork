@@ -3658,15 +3658,19 @@ input[type="range"] {
     background: transparent;
     border: 1px dashed rgba(239,116,92,0.5);
     color: var(--accent);
-    padding: 0.2rem 0.7rem;
+    padding: 0.35rem 0.85rem;
+    min-height: 36px;
     border-radius: 50px;
     font-size: 0.75rem;
     font-family: var(--font-body);
     cursor: pointer;
     transition: var(--transition);
     user-select: none;
+    display: inline-flex;
+    align-items: center;
 }
-.tag-suggest-chip:hover {
+.tag-suggest-chip:hover,
+.tag-suggest-chip:active {
     background: rgba(239,116,92,0.15);
     border-style: solid;
 }
