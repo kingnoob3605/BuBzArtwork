@@ -3,3 +3,4 @@ conversation-log.txt
 PUSH_TO_GIT.txt
 keys.js
 .gstack/
+.gstack-audit/
