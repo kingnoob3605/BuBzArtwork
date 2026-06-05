@@ -115,6 +115,14 @@ async function init() {
 
   showLoader();
   await dbInit();
+
+  // Restore admin session if Supabase session still valid
+  const { data: { session } } = await _db.auth.getSession();
+  if (session?.user) {
+    adminLoggedIn = true;
+    document.body.classList.add("admin-logged");
+  }
+
   hideLoader();
 
   // Merge Supabase extras with static data.js artworks
