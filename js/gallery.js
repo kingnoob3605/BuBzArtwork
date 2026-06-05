@@ -530,7 +530,7 @@ function showXPopup() {
       <div class="sassy-popup-inner">
           <span class="sassy-popup-emoji">🐦</span>
           <div class="sassy-popup-text">
-              <strong>Heads up!</strong>
+              <strong>Yeah... no!</strong>
               <span>Sorry, this app is only for gooning but I rarely post there.</span>
           </div>
           <button class="sassy-popup-close" onclick="this.closest('.sassy-popup').remove()">✕</button>
