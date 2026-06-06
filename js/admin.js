@@ -10,7 +10,8 @@ function onLogoClick() {
   clearTimeout(logoClickTimer);
   if (logoClickCount >= 5) {
     logoClickCount = 0;
-    openAdminPrompt();
+    if (adminLoggedIn) openAdmin();
+    else openAdminPrompt();
   } else {
     logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 2000);
   }
