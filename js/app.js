@@ -251,16 +251,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("wall-lightbox").addEventListener("click", function (e) {
     if (e.target === this) closeWallPost();
   });
-  document.getElementById("admin-panel").addEventListener("click", function (e) {
-    if (e.target === this) closeAdmin();
-  });
+  // Admin panel: no backdrop close — use ✕ button only
 
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (!document.getElementById("admin-password-prompt").classList.contains("hidden")) {
       closeAdminPrompt();
     } else if (document.getElementById("admin-panel").classList.contains("open")) {
-      closeAdmin();
+      // Escape also disabled for admin panel — prevent accidental close
+      return;
     } else if (document.getElementById("wall-lightbox").classList.contains("open")) {
       closeWallPost();
     } else if (document.getElementById("lightbox").classList.contains("open")) {
