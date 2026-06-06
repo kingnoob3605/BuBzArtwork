@@ -202,10 +202,13 @@ window.addEventListener("message", async (e) => {
       type: "drawing", data: imageUrl,
       sender: name, timestamp: new Date().toISOString(), requestedVis: vis,
     };
-    await savePending(entry);
-    showToast(vis === "public"
-      ? "WigglyPaint submitted! Waiting for approval 🌐✨"
-      : "WigglyPaint sent privately! 🔒✨ Thank you!");
+    if (vis === "private") {
+      await dbAddPrivate(entry);
+      showToast("WigglyPaint sent privately! 🔒✨ Thank you!");
+    } else {
+      await savePending(entry);
+      showToast("WigglyPaint submitted! Waiting for approval 🌐✨");
+    }
   } catch {
     localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
     showToast("Failed to send — check your connection and try again 😢");
@@ -231,17 +234,21 @@ async function submitDrawing() {
   }
 
   try {
+    const vis = getVisibility("draw");
     const imageUrl = await _cloudinaryUpload(safeCanvasDataUrl(canvas), 'bubz/submissions');
     const entry = {
       id: String(Date.now() + Math.floor(Math.random() * 1000)),
       type: "drawing", data: imageUrl,
       sender: drawSender, timestamp: new Date().toISOString(),
-      requestedVis: getVisibility("draw"),
+      requestedVis: vis,
     };
-    await savePending(entry);
-    showToast(entry.requestedVis === "public"
-      ? "Drawing submitted! Waiting for approval 🌐✨"
-      : "Drawing sent privately! 🔒✨ Thank you!");
+    if (vis === "private") {
+      await dbAddPrivate(entry);
+      showToast("Drawing sent privately! 🔒✨ Thank you!");
+    } else {
+      await savePending(entry);
+      showToast("Drawing submitted! Waiting for approval 🌐✨");
+    }
     clearCanvas();
   } catch {
     localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
@@ -262,17 +269,21 @@ async function submitMessage() {
   const btn = document.querySelector('#send-tab-message .btn-send');
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
+  const vis = getVisibility("message");
   const entry = {
     id: String(Date.now() + Math.floor(Math.random() * 1000)),
     type: "message", data: text,
     sender: msgSender, timestamp: new Date().toISOString(),
-    requestedVis: getVisibility("message"),
+    requestedVis: vis,
   };
   try {
-    await savePending(entry);
-    showToast(entry.requestedVis === "public"
-      ? "Message submitted! Waiting for approval 🌐✨"
-      : "Message sent privately! 🔒✨ Thank you!");
+    if (vis === "private") {
+      await dbAddPrivate(entry);
+      showToast("Message sent privately! 🔒✨ Thank you!");
+    } else {
+      await savePending(entry);
+      showToast("Message submitted! Waiting for approval 🌐✨");
+    }
     ta.value = "";
   } catch {
     localStorage.removeItem(SUBMIT_COOLDOWN_KEY);
