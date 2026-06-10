@@ -501,6 +501,9 @@ let canvasSizeMode = 'auto';
 let lastCursorE    = null;
 let toastTimer     = null;
 
+// ---- Offscreen cache (rebuilt only when strokes change) ----
+let _offA = null, _offB = null, _cacheDirty = true;
+
 // ---- Accessors ----
 function getColor() { return colorEl.value; }
 function getSize()  { return parseInt(sizeEl.value, 10) || 4; }
@@ -515,6 +518,7 @@ colorEl.addEventListener('input', () => {
 bgEl.addEventListener('input', () => {
     document.getElementById('bg-swatch').style.background = bgEl.value;
     if (lastCursorE) updateBrushCursor(lastCursorE);
+    _cacheDirty = true; // eraser strokes and fills bake in bg color
     redraw(showB);
 });
 sizeEl.addEventListener('input', () => {
@@ -612,8 +616,9 @@ function applyCanvasSize(val, chipEl) {
     }
 
     canvasSizeMode = val;
-    lastGifUrl = null;
-    strokes = [];
+    lastGifUrl  = null;
+    strokes     = [];
+    _cacheDirty = true;
     showToast('Canvas cleared ✦');
 
     if (val === 'auto') {
@@ -639,6 +644,7 @@ function resizeCanvas() {
     canvas.height = Math.max(1, Math.floor(rect.height));
     canvas.style.width  = '';
     canvas.style.height = '';
+    _cacheDirty = true; // dimensions changed, old offscreen invalid
     redraw();
 }
 
@@ -682,7 +688,7 @@ function moveDraw(e) {
     if (!isDrawing || isRecording) return;
     const pos  = getPos(e);
     const last = curStroke.points[curStroke.points.length - 1];
-    if ((pos.x - last.x) ** 2 + (pos.y - last.y) ** 2 > 2) {
+    if ((pos.x - last.x) ** 2 + (pos.y - last.y) ** 2 > 9) {
         curStroke.points.push(pos);
     }
 }
@@ -706,8 +712,9 @@ function stopDraw() {
         size:    curStroke.size,
         eraser:  curStroke.eraser
     });
-    curStroke  = null;
-    lastGifUrl = null;
+    curStroke    = null;
+    lastGifUrl   = null;
+    _cacheDirty  = true;
 }
 
 canvas.addEventListener('mousedown',  startDraw);
@@ -731,7 +738,8 @@ function hexToRgb(hex) {
 
 function doFill(x, y) {
     strokes.push({ type: 'fill', x, y, rgb: hexToRgb(colorEl.value) });
-    lastGifUrl = null;
+    lastGifUrl  = null;
+    _cacheDirty = true;
     redraw(showB);
 }
 
@@ -776,57 +784,73 @@ function floodFill(imageData, sx, sy, fillRGB) {
 // ---- Clear / Undo ----
 function wpClear() {
     strokes = [];
-    curStroke = null;
-    lastGifUrl = null;
-    redraw(showB); // keep current boil frame
+    curStroke   = null;
+    lastGifUrl  = null;
+    _cacheDirty = true;
+    redraw(showB);
     showToast('Canvas cleared ✦');
 }
 
 function wpUndo() {
     if (!strokes.length) return;
     strokes.pop();
-    lastGifUrl = null;
+    lastGifUrl  = null;
+    _cacheDirty = true;
     redraw(showB);
     showToast('Undone');
 }
 
 // ---- Render ----
-function drawStroke(pts, color, size) {
+function drawStroke(pts, color, size, tgt) {
+    tgt = tgt || ctx;
     if (!pts || pts.length === 0) return;
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth   = size;
-    ctx.lineCap     = 'round';
-    ctx.lineJoin    = 'round';
+    tgt.beginPath();
+    tgt.strokeStyle = color;
+    tgt.lineWidth   = size;
+    tgt.lineCap     = 'round';
+    tgt.lineJoin    = 'round';
     if (pts.length === 1) {
-        ctx.arc(pts[0].x, pts[0].y, size/2, 0, Math.PI*2);
-        ctx.fillStyle = color;
-        ctx.fill();
+        tgt.arc(pts[0].x, pts[0].y, size/2, 0, Math.PI*2);
+        tgt.fillStyle = color;
+        tgt.fill();
         return;
     }
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.stroke();
+    tgt.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) tgt.lineTo(pts[i].x, pts[i].y);
+    tgt.stroke();
+}
+
+function _renderToCtx(tgt, useB) {
+    tgt.fillStyle = getBg();
+    tgt.fillRect(0, 0, tgt.canvas.width, tgt.canvas.height);
+    for (const s of strokes) {
+        if (s.type === 'fill') {
+            const id = tgt.getImageData(0, 0, tgt.canvas.width, tgt.canvas.height);
+            floodFill(id, s.x, s.y, s.rgb);
+            tgt.putImageData(id, 0, 0);
+        } else {
+            drawStroke(useB ? s.pointsB : s.pointsA, s.eraser ? getBg() : s.color, s.size, tgt);
+        }
+    }
+}
+
+function _buildCache() {
+    if (!_offA || _offA.width !== canvas.width || _offA.height !== canvas.height) {
+        _offA = document.createElement('canvas');
+        _offB = document.createElement('canvas');
+        _offA.width = _offB.width = canvas.width;
+        _offA.height = _offB.height = canvas.height;
+    }
+    _renderToCtx(_offA.getContext('2d'), false);
+    _renderToCtx(_offB.getContext('2d'), true);
+    _cacheDirty = false;
 }
 
 function redraw(useB) {
-    ctx.fillStyle = getBg();
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (const s of strokes) {
-        if (s.type === 'fill') {
-            const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            floodFill(id, s.x, s.y, s.rgb);
-            ctx.putImageData(id, 0, 0);
-        } else {
-            const col = s.eraser ? getBg() : s.color;
-            drawStroke(useB ? s.pointsB : s.pointsA, col, s.size);
-        }
-    }
-
+    if (_cacheDirty) _buildCache();
+    ctx.drawImage(useB ? _offB : _offA, 0, 0);
     if (curStroke && curStroke.points.length > 0) {
-        const col = curStroke.eraser ? getBg() : curStroke.color;
-        drawStroke(curStroke.points, col, curStroke.size);
+        drawStroke(curStroke.points, curStroke.eraser ? getBg() : curStroke.color, curStroke.size);
     }
 }
 
@@ -834,6 +858,7 @@ function redraw(useB) {
 function startBoilTimer() {
     boilTimer = setInterval(() => {
         if (isRecording) return;
+        if (strokes.length === 0 && !curStroke) return; // nothing to animate
         showB = !showB;
         redraw(showB);
     }, 110);
