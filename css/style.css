@@ -1031,6 +1031,30 @@ nav {
     min-width: 0.6rem;
 }
 
+/* ✨ Wall post sparkle reaction toggle */
+.react-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 999px;
+    padding: 0.22em 0.6em;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-family: var(--font-body);
+    line-height: 1;
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.react-btn:active { transform: scale(0.92); }
+.react-btn:hover { border-color: var(--accent); background: rgba(239,116,92,0.08); }
+.react-btn.reacted { background: rgba(239,116,92,0.15); border-color: var(--accent); color: var(--text); }
+.react-btn .react-emoji { line-height: 1; }
+.react-btn .react-count { font-size: 0.72rem; font-weight: 700; color: var(--accent); min-width: 0.6rem; }
+
+.wall-lb-react-wrap { padding: 0.5rem 0 0.25rem; }
+
 /* ＋ Add reaction button */
 .reaction-add-btn {
     font-size: 1rem;

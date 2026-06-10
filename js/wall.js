@@ -29,21 +29,11 @@ function renderWall() {
   }
 
   grid.innerHTML = posts.map(post => {
-    const reactions = getWallReactions(post.id);
-    const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
-    const replyCount = getReplies(post.id).length;
     const senderText = post.sender ? `✏️ ${escHtml(post.sender)}` : '🙈 Anon';
-    const topEmoji = totalReactions > 0
-      ? Object.entries(reactions).sort((a, b) => b[1] - a[1])[0][0]
-      : '❤️';
-    const statsHtml = [
-      totalReactions > 0 ? `<span class="wall-mini-stat">${topEmoji} ${totalReactions}</span>` : '',
-      replyCount > 0     ? `<span class="wall-mini-stat">💬 ${replyCount}</span>`               : '',
-    ].join('');
     const miniFooter = `<div class="wall-card-mini-foot">
         <span class="wall-mini-sender">${senderText}</span>
         <span class="wall-mini-ago">${timeAgo(post.timestamp)}</span>
-        ${statsHtml}
+        ${_makeReactBtn(post.id)}
     </div>`;
 
     if (post.type === 'drawing') {
@@ -68,6 +58,8 @@ function renderWall() {
       </div>`;
     }
   }).join('');
+
+  _wireWallReactions();
 }
 
 function removeWallCard(id) {
@@ -80,37 +72,56 @@ function removeWallCard(id) {
 }
 
 // ═══════════════════════════════════════════════
-// WALL REACTIONS
+// ✨ SPARKLE REACTIONS (per-user toggle)
 // ═══════════════════════════════════════════════
-async function addWallReaction(postId, emoji, triggerBtn) {
-  if (!isEmojiAllowed(emoji)) { showToast("That reaction isn't allowed here 🚫"); return; }
-  if (triggerBtn) { _popReactionBtn(triggerBtn); _spawnEmojiFloat(triggerBtn, emoji); }
-  await dbIncrementWallReaction(postId, emoji);
-  renderWallReactions(postId);
+function _makeReactBtn(postId) {
+  return `<button class="react-btn" data-post-id="${postId}" aria-pressed="false" aria-label="React with ✨"><span class="react-emoji">✨</span><span class="react-count">0</span></button>`;
 }
 
-function renderWallReactions(postId) {
-  const container = document.getElementById("wall-reactions-" + postId);
-  if (!container) return;
-  container.innerHTML = buildWallReactionsHtml(postId);
+async function _wireWallReactions() {
+  const btns = [...document.querySelectorAll('#wall-grid .react-btn')];
+  if (!btns.length) return;
+  // attach click listeners immediately (new DOM nodes each render, no duplication)
+  btns.forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _toggleReaction(btn); }));
+  // load counts + "mine" state async
+  const postIds = btns.map(b => b.dataset.postId);
+  const reactions = await _loadReactions(postIds);
+  btns.forEach(btn => {
+    const r = reactions[btn.dataset.postId] || { count: 0, mine: false };
+    _setReactionUI(btn, r.mine, r.count);
+  });
 }
 
-function buildWallReactionsHtml(postId) {
-  const data = getWallReactions(postId);
-  const used = Object.keys(data).filter((e) => data[e] > 0);
-  const quickBtns = WALL_QUICK_REACTIONS
-    .filter(e => !used.includes(e))
-    .map(e => `<button class="reaction-btn reaction-quick-btn wall-reaction-btn" onclick="addWallReaction('${postId}','${e}',this)" title="${e}">${e}</button>`)
-    .join('');
-  return (
-    used.map((e) =>
-      `<button class="reaction-btn has-count wall-reaction-btn" onclick="addWallReaction('${postId}','${escHtml(e)}')" title="React with ${escHtml(e)}">
-          ${escHtml(e)}<span class="reaction-count">${data[e]}</span>
-      </button>`
-    ).join("") +
-    quickBtns +
-    `<button class="reaction-btn reaction-add-btn wall-reaction-btn" onclick="openEmojiPicker('${postId}',this,'wall')" title="Add reaction">＋</button>`
-  );
+async function _loadReactions(postIds) {
+  const myId = getVoterId();
+  const rows = await dbLoadPostReactions(postIds);
+  const map = {};
+  postIds.forEach(id => map[id] = { count: 0, mine: false });
+  rows.forEach(r => {
+    if (!map[r.post_id]) map[r.post_id] = { count: 0, mine: false };
+    map[r.post_id].count++;
+    if (r.voter_id === myId) map[r.post_id].mine = true;
+  });
+  return map;
+}
+
+async function _toggleReaction(btn) {
+  const postId = btn.dataset.postId;
+  const myId = getVoterId();
+  const countEl = btn.querySelector('.react-count');
+  const wasReacted = btn.classList.contains('reacted');
+  const current = parseInt(countEl.textContent, 10) || 0;
+  _setReactionUI(btn, !wasReacted, current + (wasReacted ? -1 : 1));
+  const ok = wasReacted
+    ? await dbRemovePostReaction(postId, myId)
+    : await dbAddPostReaction(postId, myId);
+  if (!ok) _setReactionUI(btn, wasReacted, current);
+}
+
+function _setReactionUI(btn, reacted, count) {
+  btn.classList.toggle('reacted', reacted);
+  btn.setAttribute('aria-pressed', reacted ? 'true' : 'false');
+  btn.querySelector('.react-count').textContent = count;
 }
 
 // ═══════════════════════════════════════════════
@@ -262,17 +273,10 @@ async function deleteReply(replyId) {
 // ═══════════════════════════════════════════════
 // WALL LIGHTBOX
 // ═══════════════════════════════════════════════
-function openWallPost(id) {
+async function openWallPost(id) {
   const post = getPublicPosts().find(p => p.id === id);
   if (!post) return;
 
-  if (currentWallPost) {
-    const prev = currentWallPost.id;
-    const r = document.getElementById(`wall-reactions-${prev}`);
-    if (r) r.id = 'wlb-reactions';
-    const rep = document.getElementById(`replies-${prev}`);
-    if (rep) rep.id = 'wlb-replies';
-  }
   currentWallPost = post;
 
   const contentEl = document.getElementById('wlb-content');
@@ -304,34 +308,15 @@ function openWallPost(id) {
       <span class="wall-lb-date">${timeAgo(post.timestamp)}</span>
       ${adminDelBtn}`;
 
-  const reactEl = document.getElementById('wlb-reactions');
-  reactEl.id = `wall-reactions-${post.id}`;
-  reactEl.innerHTML = buildWallReactionsHtml(post.id);
-
-  const repliesEl = document.getElementById('wlb-replies');
-  repliesEl.id = `replies-${post.id}`;
-  repliesEl.innerHTML = buildRepliesHtml(post.id);
-
-  const replyCount = getReplies(post.id).length;
-  document.getElementById('wlb-reply-input').innerHTML = `
-      <div class="reply-input-row" id="reply-row-${post.id}" style="display:none">
-          <div class="reply-input-top">
-              <input class="reply-input" id="reply-input-${post.id}" placeholder="Write a reply…" maxlength="200"
-                  onkeydown="if(event.key==='Enter')postReply('${post.id}')">
-              <button class="reply-send-btn" onclick="postReply('${post.id}')">Send ✨</button>
-          </div>
-          <div class="reply-input-bottom">
-              <select class="reply-anon-sel" id="reply-anon-${post.id}">
-                  <option value="">🙈 Anon</option>
-                  <option value="__named__">✏️ Named…</option>
-              </select>
-              <input class="reply-name-input" id="reply-name-${post.id}" placeholder="Your name…" style="display:none" maxlength="40">
-              <button class="reply-cancel-btn" onclick="toggleReplyInput('${post.id}')">✕ Cancel</button>
-          </div>
-      </div>
-      <button class="reply-toggle-btn" onclick="toggleReplyInput('${post.id}')">
-          ↩ ${replyCount > 0 ? replyCount + ' Repl' + (replyCount === 1 ? 'y' : 'ies') : 'Reply'}
-      </button>`;
+  // ✨ reaction button — render immediately then load state async
+  const reactWrap = document.getElementById('wlb-react-wrap');
+  reactWrap.innerHTML = _makeReactBtn(post.id);
+  const reactBtn = reactWrap.querySelector('.react-btn');
+  reactBtn.addEventListener('click', () => _toggleReaction(reactBtn));
+  _loadReactions([post.id]).then(reactions => {
+    const r = reactions[post.id] || { count: 0, mine: false };
+    _setReactionUI(reactBtn, r.mine, r.count);
+  });
 
   const lb = document.getElementById('wall-lightbox');
   lb.classList.add('open');
@@ -357,12 +342,6 @@ function closeWallPost() {
     lb.classList.remove('open');
     lb.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
-    if (currentWallPost) {
-      const r = document.getElementById(`wall-reactions-${currentWallPost.id}`);
-      if (r) r.id = 'wlb-reactions';
-      const rep = document.getElementById(`replies-${currentWallPost.id}`);
-      if (rep) rep.id = 'wlb-replies';
-    }
     currentWallPost = null;
     if (typeof gsap !== 'undefined') gsap.set('.wall-lb-inner', { y: 0, opacity: 1, scale: 1 });
   };

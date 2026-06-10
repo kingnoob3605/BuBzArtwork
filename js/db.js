@@ -416,3 +416,34 @@ async function dbVotePoll(postId, optionIdx) {
     _dbErr('votePoll', error);
     return true;
 }
+
+// ──────────────────────────────────────────────────────────────
+// WALL POST REACTIONS (per-user ✨ toggle)
+// ──────────────────────────────────────────────────────────────
+
+function getVoterId() {
+    let id = localStorage.getItem('bubz_voter_id');
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem('bubz_voter_id', id); }
+    return id;
+}
+
+async function dbLoadPostReactions(postIds) {
+    const { data, error } = await _db
+        .from('reactions')
+        .select('post_id, voter_id')
+        .in('post_id', postIds);
+    if (error) { console.error('[db] loadPostReactions:', error); return []; }
+    return data || [];
+}
+
+async function dbAddPostReaction(postId, voterId) {
+    const { error } = await _db.from('reactions').insert({ post_id: String(postId), voter_id: voterId });
+    if (error && error.code !== '23505') { console.error('[db] addPostReaction:', error); return false; }
+    return true;
+}
+
+async function dbRemovePostReaction(postId, voterId) {
+    const { error } = await _db.from('reactions').delete().eq('post_id', String(postId)).eq('voter_id', voterId);
+    if (error) { console.error('[db] removePostReaction:', error); return false; }
+    return true;
+}
