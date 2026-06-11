@@ -102,6 +102,16 @@ async function _cloudinaryUpload(fileOrDataUrl, folder) {
   return json.secure_url;
 }
 
+// ─── Cloudinary delivery sizing ────────────────
+// Originals are 2-3K px; cards render at ~200-400px. Insert an on-the-fly
+// transform so the CDN serves an appropriately sized, auto-format image.
+// Non-Cloudinary URLs (data:, local assets) pass through untouched.
+function cloudinarySized(url, width) {
+  if (typeof url !== 'string' || !url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+  if (/\/upload\/[^/]*\b(w_\d+|f_auto)/.test(url)) return url;
+  return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+}
+
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════

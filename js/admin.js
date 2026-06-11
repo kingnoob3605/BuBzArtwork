@@ -124,7 +124,7 @@ function renderAdminArtList() {
     return `
       <div class="mai-card" id="manage-${art.id}">
           <div class="mai-header">
-              <img class="mai-thumb" src="${escHtml(art.image)}" alt="${escHtml(art.title)}" onerror="this.style.opacity=0.3">
+              <img class="mai-thumb" src="${escHtml(cloudinarySized(art.image, 300))}" alt="${escHtml(art.title)}" onerror="this.style.opacity=0.3">
               <div class="mai-info">
                   <div class="mai-title">
                       ${escHtml(art.title)}

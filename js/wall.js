@@ -38,7 +38,7 @@ function renderWall() {
 
     if (post.type === 'drawing') {
       return `<div class="wall-card" data-id="${post.id}" onclick="openWallPost('${post.id}')">
-          <div class="wall-card-img"><img src="${post.data}" alt="Drawing" loading="lazy"></div>
+          <div class="wall-card-img"><img src="${cloudinarySized(post.data, 600)}" alt="Drawing" loading="lazy"></div>
           ${miniFooter}
       </div>`;
     } else if (post.type === 'poll') {
@@ -283,7 +283,7 @@ async function openWallPost(id) {
   if (post.type === 'drawing') {
     contentEl.className = 'wall-lb-left wall-lb-drawing';
     contentEl.innerHTML = `
-        <img src="${escHtml(post.data)}" alt="Drawing" class="wall-lb-img">
+        <img src="${escHtml(cloudinarySized(post.data, 1200))}" alt="Drawing" class="wall-lb-img">
         <button class="wall-lb-download-btn" data-url="${escHtml(post.data)}" onclick="downloadWallImage(this.dataset.url,event)">⬇ Download</button>`;
   } else if (post.type === 'poll') {
     contentEl.className = 'wall-lb-left wall-lb-poll';
