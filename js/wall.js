@@ -37,14 +37,14 @@ function renderWall() {
     </div>`;
 
     if (post.type === 'drawing') {
-      return `<div class="wall-card" data-id="${post.id}" onclick="openWallPost('${post.id}')">
+      return `<div class="wall-card" data-id="${post.id}" tabindex="0" role="button" onclick="openWallPost('${post.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWallPost('${post.id}')}">
           <div class="wall-card-img"><img src="${cloudinarySized(post.data, 600)}" alt="Drawing" loading="lazy" onload="this.parentElement.classList.add('img-loaded')"></div>
           ${miniFooter}
       </div>`;
     } else if (post.type === 'poll') {
       let question = '';
       try { question = JSON.parse(post.data).question; } catch {}
-      return `<div class="wall-card wall-card-poll-thumb" data-id="${post.id}" onclick="openWallPost('${post.id}')">
+      return `<div class="wall-card wall-card-poll-thumb" data-id="${post.id}" tabindex="0" role="button" onclick="openWallPost('${post.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWallPost('${post.id}')}">
           <div class="wall-card-poll-preview">
               <span class="wall-poll-thumb-icon">📊</span>
               <p class="wall-poll-thumb-q">${escHtml(question.slice(0, 80))}${question.length > 80 ? '…' : ''}</p>
@@ -52,7 +52,7 @@ function renderWall() {
           ${miniFooter}
       </div>`;
     } else {
-      return `<div class="wall-card" data-id="${post.id}" onclick="openWallPost('${post.id}')">
+      return `<div class="wall-card" data-id="${post.id}" tabindex="0" role="button" onclick="openWallPost('${post.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWallPost('${post.id}')}">
           <div class="wall-card-text">${escHtml(post.data.slice(0, 120))}${post.data.length > 120 ? '…' : ''}</div>
           ${miniFooter}
       </div>`;

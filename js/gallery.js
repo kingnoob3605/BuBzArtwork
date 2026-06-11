@@ -118,6 +118,9 @@ function renderGallery() {
   filtered.forEach((art, i) => {
     const card = document.createElement("div");
     card.className = "art-card";
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `View ${art.title}`);
     card.setAttribute("data-aos", "fade-up");
     card.setAttribute("data-aos-delay", Math.min(i * 60, 400));
 
@@ -161,6 +164,12 @@ function renderGallery() {
             <div class="card-reactions">${buildCardReactionsHtml(art.id)}</div>
         </div>`;
     card.onclick = () => openLightbox(art.id);
+    card.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openLightbox(art.id);
+      }
+    };
     grid.appendChild(card);
   });
 
