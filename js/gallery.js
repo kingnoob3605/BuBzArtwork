@@ -130,7 +130,7 @@ function renderGallery() {
       ? `<div class="nsfw-blur-overlay">
             <span class="nsfw-blur-icon">🔞</span>
             <span class="nsfw-blur-label">NSFW</span>
-            <span class="nsfw-blur-hint">Hover to preview</span>
+            <span class="nsfw-blur-hint">Hover or tap to view</span>
         </div>`
       : "";
 
