@@ -38,7 +38,7 @@ function renderWall() {
 
     if (post.type === 'drawing') {
       return `<div class="wall-card" data-id="${post.id}" onclick="openWallPost('${post.id}')">
-          <div class="wall-card-img"><img src="${cloudinarySized(post.data, 600)}" alt="Drawing" loading="lazy"></div>
+          <div class="wall-card-img"><img src="${cloudinarySized(post.data, 600)}" alt="Drawing" loading="lazy" onload="this.parentElement.classList.add('img-loaded')"></div>
           ${miniFooter}
       </div>`;
     } else if (post.type === 'poll') {

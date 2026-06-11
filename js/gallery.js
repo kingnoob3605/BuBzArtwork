@@ -140,14 +140,14 @@ function renderGallery() {
       const gridClass = imgs.length === 2 ? 'multi-img-grid--2' : imgs.length === 3 ? 'multi-img-grid--3' : 'multi-img-grid--4';
       imgWrapHtml = `<div class="art-card-img-wrap multi-img-grid ${gridClass} ${art.nsfw ? 'is-nsfw' : ''}">
         ${shown.map((url, idx) => `<div class="multi-img-cell"${idx === 3 && extra > 0 ? ` data-extra="+${extra + 1}"` : ''}>
-          <img src="${escHtml(cloudinarySized(url, 600))}" alt="${escHtml(art.title)}" loading="lazy">
+          <img src="${escHtml(cloudinarySized(url, 600))}" alt="${escHtml(art.title)}" loading="lazy" onload="this.parentElement.classList.add('img-loaded')">
         </div>`).join('')}
         ${nsfwOverlay}
         <span class="multi-img-badge">📷 ${imgs.length}</span>
       </div>`;
     } else {
       imgWrapHtml = `<div class="art-card-img-wrap ${art.nsfw ? 'is-nsfw' : ''}">
-        <img src="${escHtml(cloudinarySized(art.image, 600))}" alt="${escHtml(art.title)}" loading="lazy">
+        <img src="${escHtml(cloudinarySized(art.image, 600))}" alt="${escHtml(art.title)}" loading="lazy" onload="this.parentElement.classList.add('img-loaded')">
         ${nsfwOverlay}
       </div>`;
     }

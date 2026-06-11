@@ -626,6 +626,19 @@ nav {
     border-radius: 2px;
 }
 
+/* Shimmer while lazy images load — stops once .img-loaded is set */
+.art-card-img-wrap:not(.img-loaded):not(.multi-img-grid),
+.multi-img-cell:not(.img-loaded),
+.wall-card-img:not(.img-loaded) {
+    min-height: 140px;
+    background: linear-gradient(110deg, #2c0834 38%, #45104f 50%, #2c0834 62%);
+    background-size: 200% 100%;
+    animation: imgShimmer 1.6s ease-in-out infinite;
+}
+@keyframes imgShimmer {
+    to { background-position: -200% 0; }
+}
+
 .art-card-img-wrap img {
     width: 100%;
     display: block;
