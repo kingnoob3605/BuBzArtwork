@@ -4602,12 +4602,12 @@ body.admin-logged .comment-delete:hover {
     .filter-chip,
     .tag-chip,
     .wall-chip {
-        min-height: 40px;
+        min-height: 44px;
         display: inline-flex;
         align-items: center;
     }
     .reaction-btn {
-        min-height: 40px;
+        min-height: 44px;
         padding: 0.45rem 0.85rem;
     }
     .lightbox-close,
@@ -4617,14 +4617,14 @@ body.admin-logged .comment-delete:hover {
         font-size: 1.1rem;
     }
     .btn-tool {
-        min-height: 40px;
+        min-height: 44px;
         padding: 0.5rem 0.85rem;
     }
     .identity-btn,
     .vis-btn,
     .send-tab-btn,
     .admin-tab-btn {
-        min-height: 40px;
+        min-height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -4714,6 +4714,24 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
     outline: none;
+}
+
+/* Touch devices: keep pill styling but guarantee 44px hit areas */
+@media (pointer: coarse) {
+    .btn-tool,
+    .vis-btn,
+    .identity-btn,
+    .tag-filter-toggle,
+    .filter-chip,
+    .wall-chip {
+        min-height: 44px;
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+    }
+    input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+    }
 }
 
 /* ── 6. Reduced motion — respect the user ───────────────── */
