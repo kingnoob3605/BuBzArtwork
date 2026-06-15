@@ -98,6 +98,7 @@ function showAdminTab(tab) {
   if (tab === "submissions") renderSubmissions();
   if (tab === "my-art")      renderAdminArtList();
   if (tab === "wall")        renderAdminWall();
+  if (tab === "profile")     renderProfileTab();
   updatePendingBadge();
 }
 
@@ -215,6 +216,77 @@ async function deleteArtwork(artId) {
 // Aliases for backwards compatibility
 function toggleManageComments(artId) { maiToggle(artId, "comments"); }
 function toggleManageEdit(artId)     { maiToggle(artId, "edit"); }
+
+// ═══════════════════════════════════════════════
+// AVATAR UPDATE (admin only)
+// ═══════════════════════════════════════════════
+function renderProfileTab() {
+  const stored = getAvatarUrl();
+  const preview = document.getElementById('admin-avatar-preview');
+  if (preview && stored) preview.src = stored;
+}
+
+function openAvatarPicker() {
+  if (!adminLoggedIn) return;
+  document.getElementById('avatar-file-input').click();
+}
+
+function onAvatarFileSelected(input) {
+  if (!adminLoggedIn || !input.files[0]) return;
+  const file = input.files[0];
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const modal = document.getElementById('avatar-crop-modal');
+    modal.classList.remove('hidden');
+    const img = document.getElementById('avatar-crop-img');
+    img.src = e.target.result;
+    if (window._avatarCropper) window._avatarCropper.destroy();
+    window._avatarCropper = new Cropper(img, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.85,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: false,
+      cropBoxMovable: false,
+      cropBoxResizable: false,
+      toggleDragModeOnDblclick: false,
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function closeAvatarModal() {
+  document.getElementById('avatar-crop-modal').classList.add('hidden');
+  if (window._avatarCropper) { window._avatarCropper.destroy(); window._avatarCropper = null; }
+  const img = document.getElementById('avatar-crop-img');
+  if (img) img.src = '';
+}
+
+async function saveAvatar() {
+  if (!adminLoggedIn || !window._avatarCropper) return;
+  const btn = document.getElementById('avatar-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+  try {
+    const canvas = window._avatarCropper.getCroppedCanvas({ width: 400, height: 400 });
+    const dataUrl = canvas.toDataURL('image/png');
+    const url = await _cloudinaryUpload(dataUrl, 'bubz/avatar');
+    await dbSetAvatarUrl(url);
+    const avatarImg = document.querySelector('.about-avatar');
+    if (avatarImg) avatarImg.src = url;
+    closeAvatarModal();
+    showToast('Avatar updated! ✨');
+  } catch (e) {
+    showToast('Upload failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Avatar ✨';
+  }
+}
 
 async function saveArtEdit(artId) {
   const title  = document.getElementById(`edit-title-${artId}`).value.trim();

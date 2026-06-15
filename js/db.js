@@ -447,3 +447,22 @@ async function dbRemovePostReaction(postId, voterId) {
     if (error) { console.error('[db] removePostReaction:', error); return false; }
     return true;
 }
+
+// ──────────────────────────────────────────────────────────────
+// SITE SETTINGS — avatar URL (admin-only write, public read)
+// ──────────────────────────────────────────────────────────────
+let _avatarUrl = '';
+
+function getAvatarUrl() { return _avatarUrl; }
+
+async function dbLoadAvatarUrl() {
+    const { data } = await _db.from('site_settings').select('value').eq('key', 'avatar_url').single();
+    _avatarUrl = data?.value || '';
+    return _avatarUrl;
+}
+
+async function dbSetAvatarUrl(url) {
+    _avatarUrl = url;
+    const { error } = await _db.from('site_settings').upsert({ key: 'avatar_url', value: url });
+    _dbErr('setAvatarUrl', error);
+}

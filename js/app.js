@@ -133,6 +133,13 @@ async function init() {
     document.body.classList.add("admin-logged");
   }
 
+  // Load stored avatar (public read — all visitors see it)
+  const storedAvatar = await dbLoadAvatarUrl();
+  if (storedAvatar) {
+    const avatarImg = document.querySelector('.about-avatar');
+    if (avatarImg) avatarImg.src = storedAvatar;
+  }
+
   hideLoader();
 
   // Merge Supabase extras with static data.js artworks

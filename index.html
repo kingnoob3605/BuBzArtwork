@@ -60,6 +60,12 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css"
     />
 
+    <!-- Cropper.js (avatar editor) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
+    />
+
     <!-- Site styles -->
     <link rel="stylesheet" href="css/style.css?v=17" />
   </head>
@@ -779,6 +785,9 @@
             <button class="admin-tab-btn" data-tab="wall" onclick="showAdminTab('wall')" role="tab">
               <span class="tab-icon">🗨️</span><span class="tab-label">Wall</span>
             </button>
+            <button class="admin-tab-btn" data-tab="profile" onclick="showAdminTab('profile')" role="tab">
+              <span class="tab-icon">🖼️</span><span class="tab-label">Profile</span>
+            </button>
           </nav>
 
           </nav>
@@ -960,10 +969,59 @@
               ></div>
             </div>
           </div>
+          <!-- Profile tab -->
+          <div class="admin-tab-content" id="admin-tab-profile">
+            <div class="admin-form">
+              <div class="form-group">
+                <label>Avatar</label>
+                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem">
+                  <img
+                    id="admin-avatar-preview"
+                    src="assets/avatar.png"
+                    alt="Current avatar"
+                    style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)"
+                    onerror="this.style.opacity=0.3"
+                  />
+                  <div>
+                    <p style="margin:0 0 0.4rem;font-size:0.85rem;opacity:0.75">Current avatar shown above.</p>
+                    <button class="btn-submit" style="padding:0.5rem 1rem;font-size:0.85rem" onclick="openAvatarPicker()">
+                      📷 Change Avatar
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  id="avatar-file-input"
+                  accept="image/*"
+                  style="display:none"
+                  onchange="onAvatarFileSelected(this)"
+                />
+              </div>
+            </div>
+          </div>
+
           </div><!-- /admin-body -->
         </div><!-- /admin-layout -->
       </div><!-- /admin-inner -->
     </div><!-- /admin-panel -->
+
+    <!-- Avatar crop modal -->
+    <div id="avatar-crop-modal" class="hidden" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:1rem">
+      <div style="background:var(--surface,#1a1a2e);border-radius:16px;padding:1.25rem;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h3 style="margin:0;font-size:1rem">Crop Avatar ✦</h3>
+          <button onclick="closeAvatarModal()" style="background:none;border:none;color:inherit;font-size:1.2rem;cursor:pointer;padding:0.25rem">✕</button>
+        </div>
+        <div style="max-height:320px;overflow:hidden;border-radius:8px;background:#000">
+          <img id="avatar-crop-img" src="" alt="" style="display:block;max-width:100%" />
+        </div>
+        <p style="font-size:0.78rem;opacity:0.6;margin:0.6rem 0 0.9rem;text-align:center">Drag to reposition · Pinch or scroll to zoom</p>
+        <div style="display:flex;gap:0.75rem">
+          <button id="avatar-save-btn" class="btn-submit" style="flex:1" onclick="saveAvatar()">Save Avatar ✨</button>
+          <button onclick="closeAvatarModal()" style="flex:1;padding:0.6rem;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:none;color:inherit;cursor:pointer;font-size:0.9rem">Cancel</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Back to top -->
     <button
@@ -1020,6 +1078,9 @@
       </div>
     </div>
 
+    <!-- Cropper.js (avatar editor) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
     <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <!-- AOS JS -->
@@ -1037,12 +1098,12 @@
       const CLOUDINARY_PRESET = "Bubz_artzone";
       const ADMIN_EMAIL = "kingnoob360pro@gmail.com";
     </script>
-    <script src="js/db.js?v=14"></script>
-    <script src="js/app.js?v=16"></script>
+    <script src="js/db.js?v=15"></script>
+    <script src="js/app.js?v=17"></script>
     <script src="js/gallery.js?v=18"></script>
     <script src="js/wall.js?v=17"></script>
     <script src="js/send.js?v=15"></script>
-    <script src="js/admin.js?v=16"></script>
+    <script src="js/admin.js?v=17"></script>
     <script src="js/mobile-enhance.js?v=14"></script>
 
     <!-- Vercel Analytics (gated to deployed host; avoids 404 in preview) -->
